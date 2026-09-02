@@ -20,4 +20,4 @@ venv/
 # Outputs
 outputs/
 *.html
-!docs/
+!docs/**/*.html
