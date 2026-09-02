@@ -19,6 +19,7 @@ Diseño: experimento aleatorizado (RCT) con 5.000 clientes muestreados de 500.00
 
 Documentación de referencia en [`docs/`](docs/):
 
+- [`GUIA_CONCEPTUAL_TECNICA.md`](docs/GUIA_CONCEPTUAL_TECNICA.md) — marco causal, resultados numéricos e interpretación
 - `DOE_prueba_tecnica.docx` — diseño del experimento
 - `Dic_Variables_Prueba_Tecnica.pdf` — diccionario de variables
 
@@ -45,7 +46,7 @@ Documentación de referencia en [`docs/`](docs/):
 | `01_load_and_eda.ipynb` | Carga, validación, EDA, balance de randomización |
 | `02_basic_experiment_analysis.ipynb` | ATE, tests, regresión, visualizaciones |
 | `03_causal_ml_heterogeneity.ipynb` | CATE con EconML/causalml, segmentos |
-| `04_data_storytelling.ipynb` | Narrativa para el cliente + export HTML |
+| `04_data_storytelling.ipynb` | Narrativa para el cliente + export HTML ([`docs/04_data_storytelling.html`](docs/04_data_storytelling.html)) |
 
 ## Setup
 
@@ -65,6 +66,9 @@ causal-email-nudge-experiment/
 ├── docs/
 ├── notebooks/
 ├── src/
+│   ├── data.py       # Carga y tipado
+│   ├── analysis.py   # ATE, regresión, impacto
+│   └── causal.py     # CATE con meta-learners
 ├── requirements.txt
 └── README.md
 ```
