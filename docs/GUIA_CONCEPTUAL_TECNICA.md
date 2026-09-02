@@ -28,6 +28,40 @@ Un banco quiere **aumentar la interacción** con emails transaccionales o de mar
 
 La aleatorización es la pieza clave: en un RCT bien ejecutado, **no necesitamos controlar covariables para estimar el efecto causal promedio (ATE)**. Las covariables entran en juego para (a) verificar balance, (b) ganar precisión en regresión y (c) estimar efectos heterogéneos (CATE).
 
+### ¿Qué es `ctrl` y qué es `trat`? (conceptual)
+
+Los nombres en la columna `grupo` son **brazos del experimento**, no etiquetas arbitrarias:
+
+| Código | Nombre usual | Qué es en la práctica |
+|--------|--------------|------------------------|
+| `ctrl` | **Control** | Email **sin** nudge de ciencias del comportamiento. Es la **referencia causal**: “¿qué pasa con el email estándar?” |
+| `trat1` | **Tratamiento 1** | Mismo email base + **nudge A** (ej. anclaje, urgencia, framing distinto). |
+| `trat2` | **Tratamiento 2** | Mismo email base + **nudge B** (otra intervención conductual). |
+
+**`ctrl` no significa “no recibir email”.** Todos los clientes reciben un email; el control recibe la versión **sin** el nudge experimental. La pregunta causal es: *¿el nudge mejora la interacción respecto al email que ya enviábamos?*
+
+**`trat` (trat1 / trat2)** son **intervenciones** que queremos evaluar. Cada uno define un resultado potencial distinto:
+
+\[
+Y_i(\text{ctrl}),\quad Y_i(\text{trat1}),\quad Y_i(\text{trat2})
+\]
+
+Para el cliente \(i\) solo observamos **uno** — el del brazo asignado aleatoriamente:
+
+\[
+Y_i^{\text{obs}} = Y_i(T_i), \quad T_i \in \{\text{ctrl}, \text{trat1}, \text{trat2}\}
+\]
+
+Los otros dos son **contrafactuales** (no observados). La aleatorización permite sustituir expectativas contrafactuales por medias del grupo correspondiente:
+
+\[
+ATE_{\text{trat2 vs ctrl}} = \mathbb{E}[Y(\text{trat2}) - Y(\text{ctrl})] \approx \bar{Y}_{\text{trat2}} - \bar{Y}_{\text{ctrl}}
+\]
+
+**Analogía:** en un ensayo clínico, “placebo” no es “sin medicina”; es el tratamiento de referencia. Aquí `ctrl` es el email de referencia; `trat1` y `trat2` son las variantes con nudge.
+
+Para profundidad en CATE, meta-learners y DML, ver [`CAUSAL_ML.md`](CAUSAL_ML.md).
+
 ---
 
 ## 2. Variables y su significado causal
@@ -221,8 +255,10 @@ En un RCT, el ATE se estima fácilmente. Pero el negocio quiere **segmentos acci
 
 | Learner | Idea | Fórmula del efecto |
 |---------|------|-------------------|
+| **S-Learner** | Un modelo con \(T\) como feature | \(\hat\tau(x) = \hat\mu(x,1) - \hat\mu(x,0)\) |
 | **T-Learner** | Modelo separado por brazo | \(\hat\tau(x) = \hat\mu_1(x) - \hat\mu_0(x)\) |
 | **X-Learner** | Usa propensity + imputación cruzada | Mejor cuando un brazo es más pequeño o hay heterogeneidad fuerte |
+| **LinearDML** | Cross-fitting + regresión ortogonal | Robusto a nuisance mal estimados; ver `CAUSAL_ML.md` |
 
 Implementación:
 
@@ -322,7 +358,9 @@ causal-email-nudge-experiment/
 ├── docs/
 │   ├── DOE_prueba_tecnica.docx      # Diseño del experimento (BeWay)
 │   ├── Dic_Variables_Prueba_Tecnica.pdf
-│   └── GUIA_CONCEPTUAL_TECNICA.md   # ← este documento
+│   ├── GUIA_CONCEPTUAL_TECNICA.md   # ← este documento
+│   ├── CAUSAL_ML.md                 # Marco Causal ML (meta-learners, DML)
+│   └── 04_DATA_STORYTELLING.md      # Narrativa ejecutiva (Markdown)
 ├── notebooks/
 │   ├── 01_load_and_eda.ipynb
 │   ├── 02_basic_experiment_analysis.ipynb
@@ -355,9 +393,8 @@ causal-email-nudge-experiment/
 
 1. **CausalForestDML** (EconML) con cross-fitting para CATE mejor calibrado.
 2. **Análisis de mediación:** ¿cuánto del efecto en `ctor` pasa por `or`?
-3. **Policy learning:** reglas de tratamiento óptimo con `DR-Learner` o `PolicyTree`.
-4. **Export HTML** del notebook 04 para stakeholders:  
-   `jupyter nbconvert --to html notebooks/04_data_storytelling.ipynb`
+3. **Policy learning:** reglas de tratamiento óptimo con `PolicyTree` (DR-Learner solo con especificación fina en binarios).
+4. **Mantener narrativa en Markdown** — [`04_DATA_STORYTELLING.md`](04_DATA_STORYTELLING.md) para revisión en GitHub.
 5. **Tests unitarios** en `src/analysis.py` y `src/causal.py` con fixtures del CSV.
 
 ---
@@ -366,5 +403,5 @@ causal-email-nudge-experiment/
 
 - **ATE / diff-in-means:** estimador principal en RCT; ver `src/analysis.py`.
 - **Regresión logística:** odds ratios ajustados; notebook 02.
-- **T-Learner / X-Learner:** efectos heterogéneos; `src/causal.py`, [EconML docs](https://econml.azurewebsites.net/).
+- **S/T/X-Learner y LinearDML:** efectos heterogéneos; `src/causal.py`, [`CAUSAL_ML.md`](CAUSAL_ML.md), [EconML docs](https://econml.azurewebsites.net/).
 - **Marco potencial de resultados:** Imbens & Rubin (2015), *Causal Inference for Statistics, Social, and Biomedical Sciences*.

@@ -9,17 +9,19 @@ Un banco probó tres variantes de email para aumentar:
 - **Open rate** (`or`): ¿el cliente abrió el email?
 - **Click-to-open rate** (`ctor`): ¿clicó en el botón de acción?
 
-| Grupo  | Descripción                          |
-|--------|--------------------------------------|
-| `ctrl` | Email control (sin nudge)            |
-| `trat1`| Email con nudge de comportamiento 1  |
-| `trat2`| Email con nudge de comportamiento 2  |
+| Grupo  | Descripción |
+|--------|-------------|
+| `ctrl` | Email control (sin nudge) — **referencia causal**, no “sin email” |
+| `trat1`| Email con nudge de comportamiento 1 |
+| `trat2`| Email con nudge de comportamiento 2 |
 
 Diseño: experimento aleatorizado (RCT) con 5.000 clientes muestreados de 500.000.
 
 Documentación de referencia en [`docs/`](docs/):
 
-- [`GUIA_CONCEPTUAL_TECNICA.md`](docs/GUIA_CONCEPTUAL_TECNICA.md) — marco causal, resultados numéricos e interpretación
+- [`GUIA_CONCEPTUAL_TECNICA.md`](docs/GUIA_CONCEPTUAL_TECNICA.md) — marco causal, `ctrl` vs `trat`, resultados e interpretación
+- [`CAUSAL_ML.md`](docs/CAUSAL_ML.md) — identificación, meta-learners, DML, validación de CATE
+- [`04_DATA_STORYTELLING.md`](docs/04_DATA_STORYTELLING.md) — narrativa ejecutiva para el cliente
 - `DOE_prueba_tecnica.docx` — diseño del experimento
 - `Dic_Variables_Prueba_Tecnica.pdf` — diccionario de variables
 
@@ -45,8 +47,8 @@ Documentación de referencia en [`docs/`](docs/):
 |----------|-----------|
 | `01_load_and_eda.ipynb` | Carga, validación, EDA, balance de randomización |
 | `02_basic_experiment_analysis.ipynb` | ATE, tests, regresión, visualizaciones |
-| `03_causal_ml_heterogeneity.ipynb` | CATE con EconML/causalml, segmentos |
-| `04_data_storytelling.ipynb` | Narrativa para el cliente + export HTML ([`docs/04_data_storytelling.html`](docs/04_data_storytelling.html)) |
+| `03_causal_ml_heterogeneity.ipynb` | CATE (S/T/X-Learner, LinearDML), segmentos |
+| `04_data_storytelling.ipynb` | Narrativa para el cliente → ver [`docs/04_DATA_STORYTELLING.md`](docs/04_DATA_STORYTELLING.md) |
 
 ## Setup
 
@@ -68,7 +70,7 @@ causal-email-nudge-experiment/
 ├── src/
 │   ├── data.py       # Carga y tipado
 │   ├── analysis.py   # ATE, regresión, impacto
-│   └── causal.py     # CATE con meta-learners
+│   └── causal.py     # CATE (meta-learners + LinearDML)
 ├── requirements.txt
 └── README.md
 ```

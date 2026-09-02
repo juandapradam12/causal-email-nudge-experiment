@@ -1,4 +1,4 @@
-"""Causal ML utilities: CATE estimation with meta-learners."""
+"""Causal ML utilities: CATE estimation with meta-learners and DML."""
 
 from __future__ import annotations
 
@@ -6,7 +6,8 @@ from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
-from econml.metalearners import TLearner, XLearner
+from econml.dml import LinearDML
+from econml.metalearners import SLearner, TLearner, XLearner
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 
@@ -29,27 +30,34 @@ class CATEEstimates:
     label: str
     cate_t: np.ndarray
     cate_x: np.ndarray
+    cate_s: np.ndarray
     features: pd.DataFrame
     treatment: np.ndarray
     outcome: np.ndarray
+    cate_dml: np.ndarray | None = None
 
     def to_frame(self) -> pd.DataFrame:
         frame = self.features.copy()
         frame["cate_t"] = self.cate_t
         frame["cate_x"] = self.cate_x
+        frame["cate_s"] = self.cate_s
+        if self.cate_dml is not None:
+            frame["cate_dml"] = self.cate_dml
         frame["label"] = self.label
         return frame
 
     def summary(self) -> pd.Series:
-        return pd.Series(
-            {
-                "mean_cate_t": self.cate_t.mean(),
-                "mean_cate_x": self.cate_x.mean(),
-                "std_cate_x": self.cate_x.std(),
-                "min_cate_x": self.cate_x.min(),
-                "max_cate_x": self.cate_x.max(),
-            }
-        )
+        values = {
+            "mean_cate_t": self.cate_t.mean(),
+            "mean_cate_x": self.cate_x.mean(),
+            "mean_cate_s": self.cate_s.mean(),
+            "std_cate_x": self.cate_x.std(),
+            "min_cate_x": self.cate_x.min(),
+            "max_cate_x": self.cate_x.max(),
+        }
+        if self.cate_dml is not None:
+            values["mean_cate_dml"] = self.cate_dml.mean()
+        return pd.Series(values)
 
 
 def prep_binary_comparison(
@@ -71,6 +79,14 @@ def prep_binary_comparison(
     return X, T, Y
 
 
+def _base_classifier(n_estimators: int, random_state: int) -> RandomForestClassifier:
+    return RandomForestClassifier(
+        n_estimators=n_estimators,
+        random_state=random_state,
+        n_jobs=-1,
+    )
+
+
 def fit_cate(
     X: pd.DataFrame,
     T: np.ndarray,
@@ -79,14 +95,16 @@ def fit_cate(
     *,
     n_estimators: int = 200,
     random_state: int = 42,
+    include_dml: bool = True,
+    dml_cv: int = 3,
 ) -> CATEEstimates:
-    """Fit T-Learner and X-Learner for a binary treatment comparison."""
-    base = RandomForestClassifier(
-        n_estimators=n_estimators,
-        random_state=random_state,
-        n_jobs=-1,
-    )
+    """Fit S/T/X meta-learners and optional LinearDML for a binary comparison."""
+    base = _base_classifier(n_estimators, random_state)
     x_vals = X.values
+
+    s_learner = SLearner(overall_model=base)
+    s_learner.fit(Y, T, X=x_vals)
+    cate_s = s_learner.effect(x_vals).flatten()
 
     t_learner = TLearner(models=base)
     t_learner.fit(Y, T, X=x_vals)
@@ -97,10 +115,25 @@ def fit_cate(
     x_learner.fit(Y, T, X=x_vals)
     cate_x = x_learner.effect(x_vals).flatten()
 
+    cate_dml = None
+    if include_dml:
+        dml = LinearDML(
+            model_y=_base_classifier(n_estimators, random_state),
+            model_t=_base_classifier(n_estimators, random_state),
+            discrete_treatment=True,
+            discrete_outcome=True,
+            cv=dml_cv,
+            random_state=random_state,
+        )
+        dml.fit(Y, T, X=x_vals)
+        cate_dml = dml.effect(x_vals).flatten()
+
     return CATEEstimates(
         label=label,
         cate_t=cate_t,
         cate_x=cate_x,
+        cate_s=cate_s,
+        cate_dml=cate_dml,
         features=X,
         treatment=T,
         outcome=Y,
@@ -130,19 +163,27 @@ def validate_cate_vs_ate(
     outcome: str,
     cate_estimates: CATEEstimates,
 ) -> pd.DataFrame:
-    """Compare mean CATE to the simple difference-in-means ATE."""
+    """Compare mean CATE from each learner to the simple difference-in-means ATE."""
     ate = (
         df.loc[df["grupo"] == treatment_arm, outcome].mean()
         - df.loc[df["grupo"] == "ctrl", outcome].mean()
     )
+
+    metrics = ["ATE (diff medias)", "Media CATE S-Learner", "Media CATE T-Learner", "Media CATE X-Learner"]
+    values = [
+        ate,
+        cate_estimates.cate_s.mean(),
+        cate_estimates.cate_t.mean(),
+        cate_estimates.cate_x.mean(),
+    ]
+    if cate_estimates.cate_dml is not None:
+        metrics.append("Media CATE LinearDML")
+        values.append(cate_estimates.cate_dml.mean())
+
     return pd.DataFrame(
         {
-            "metric": ["ATE (diff medias)", "Media CATE T-Learner", "Media CATE X-Learner"],
-            "value": [ate, cate_estimates.cate_t.mean(), cate_estimates.cate_x.mean()],
-            "gap_vs_ate": [
-                0.0,
-                abs(ate - cate_estimates.cate_t.mean()),
-                abs(ate - cate_estimates.cate_x.mean()),
-            ],
+            "metric": metrics,
+            "value": values,
+            "gap_vs_ate": [0.0] + [abs(ate - v) for v in values[1:]],
         }
     )
