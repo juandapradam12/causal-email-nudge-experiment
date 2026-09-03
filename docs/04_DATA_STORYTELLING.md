@@ -40,6 +40,16 @@ Tres variantes del **mismo email base**, diferenciadas solo por el nudge incrust
 
 **Lectura en una frase:** Los nudges **duplican la apertura**; el Tratamiento 2 además **multiplica por ~5** la tasa de clic respecto al control.
 
+### Dónde actúa el efecto (mediación del funnel)
+
+| Comparación | % del ATE vía apertura | % vía conversión post-apertura |
+|-------------|------------------------|--------------------------------|
+| Trat1 vs control | 36% | 64% |
+| Trat2 vs control | 24% | **76%** |
+| Trat2 vs Trat1 | ~0% | **~100%** |
+
+Trat1 y Trat2 abren igual; la ventaja de Trat2 es **casi solo** más clics entre quienes ya abrieron.
+
 ---
 
 ## 4. Impacto estimado al escalar

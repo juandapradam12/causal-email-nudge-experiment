@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
-from econml.dml import LinearDML
+from econml.dml import CausalForestDML, LinearDML
 from econml.metalearners import SLearner, TLearner, XLearner
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
@@ -35,6 +35,7 @@ class CATEEstimates:
     treatment: np.ndarray
     outcome: np.ndarray
     cate_dml: np.ndarray | None = None
+    cate_cf: np.ndarray | None = None
 
     def to_frame(self) -> pd.DataFrame:
         frame = self.features.copy()
@@ -43,6 +44,8 @@ class CATEEstimates:
         frame["cate_s"] = self.cate_s
         if self.cate_dml is not None:
             frame["cate_dml"] = self.cate_dml
+        if self.cate_cf is not None:
+            frame["cate_cf"] = self.cate_cf
         frame["label"] = self.label
         return frame
 
@@ -57,6 +60,8 @@ class CATEEstimates:
         }
         if self.cate_dml is not None:
             values["mean_cate_dml"] = self.cate_dml.mean()
+        if self.cate_cf is not None:
+            values["mean_cate_cf"] = self.cate_cf.mean()
         return pd.Series(values)
 
 
@@ -87,6 +92,34 @@ def _base_classifier(n_estimators: int, random_state: int) -> RandomForestClassi
     )
 
 
+def calibrate_cate_to_ate(
+    cate: np.ndarray,
+    ate: float,
+    method: str = "shift",
+) -> np.ndarray:
+    """Post-hoc calibration so mean CATE matches ATE while preserving ranking.
+
+    Parameters
+    ----------
+    cate :
+        Individual CATE estimates.
+    ate :
+        Target ATE (e.g. difference in means from the RCT).
+    method :
+        ``shift`` — additive: ``cate - mean(cate) + ate`` (preserves gaps).
+        ``scale`` — multiplicative: ``cate * (ate / mean(cate))`` if mean ≠ 0.
+    """
+    cate = np.asarray(cate, dtype=float)
+    mean_cate = cate.mean()
+    if method == "shift":
+        return cate - mean_cate + ate
+    if method == "scale":
+        if abs(mean_cate) < 1e-12:
+            raise ValueError("Cannot scale CATE when mean is ~0; use method='shift'.")
+        return cate * (ate / mean_cate)
+    raise ValueError(f"Unknown method={method!r}; use 'shift' or 'scale'.")
+
+
 def fit_cate(
     X: pd.DataFrame,
     T: np.ndarray,
@@ -96,9 +129,11 @@ def fit_cate(
     n_estimators: int = 200,
     random_state: int = 42,
     include_dml: bool = True,
+    include_causal_forest: bool = True,
     dml_cv: int = 3,
+    cf_n_estimators: int = 100,
 ) -> CATEEstimates:
-    """Fit S/T/X meta-learners and optional LinearDML for a binary comparison."""
+    """Fit S/T/X meta-learners and optional LinearDML / CausalForestDML."""
     base = _base_classifier(n_estimators, random_state)
     x_vals = X.values
 
@@ -128,12 +163,29 @@ def fit_cate(
         dml.fit(Y, T, X=x_vals)
         cate_dml = dml.effect(x_vals).flatten()
 
+    cate_cf = None
+    if include_causal_forest:
+        # CausalForestDML requires n_estimators divisible by subforest_size (default 4).
+        n_trees = max(4, int(cf_n_estimators) // 4 * 4)
+        cf = CausalForestDML(
+            model_y=_base_classifier(max(50, n_estimators // 2), random_state),
+            model_t=_base_classifier(max(50, n_estimators // 2), random_state),
+            discrete_treatment=True,
+            discrete_outcome=True,
+            n_estimators=n_trees,
+            cv=dml_cv,
+            random_state=random_state,
+        )
+        cf.fit(Y, T, X=x_vals)
+        cate_cf = cf.effect(x_vals).flatten()
+
     return CATEEstimates(
         label=label,
         cate_t=cate_t,
         cate_x=cate_x,
         cate_s=cate_s,
         cate_dml=cate_dml,
+        cate_cf=cate_cf,
         features=X,
         treatment=T,
         outcome=Y,
@@ -169,7 +221,12 @@ def validate_cate_vs_ate(
         - df.loc[df["grupo"] == "ctrl", outcome].mean()
     )
 
-    metrics = ["ATE (diff medias)", "Media CATE S-Learner", "Media CATE T-Learner", "Media CATE X-Learner"]
+    metrics = [
+        "ATE (diff medias)",
+        "Media CATE S-Learner",
+        "Media CATE T-Learner",
+        "Media CATE X-Learner",
+    ]
     values = [
         ate,
         cate_estimates.cate_s.mean(),
@@ -179,6 +236,9 @@ def validate_cate_vs_ate(
     if cate_estimates.cate_dml is not None:
         metrics.append("Media CATE LinearDML")
         values.append(cate_estimates.cate_dml.mean())
+    if cate_estimates.cate_cf is not None:
+        metrics.append("Media CATE CausalForestDML")
+        values.append(cate_estimates.cate_cf.mean())
 
     return pd.DataFrame(
         {

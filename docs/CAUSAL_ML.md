@@ -191,36 +191,82 @@ Función `validate_cate_vs_ate` en `src/causal.py` compara:
 
 1. **No** escalar “+0.20 pp por cliente” a 500k si el ATE dice +40 pp.
 2. **Sí** usar CATE para: edad 18–35 CATE ≈ 0.67 vs 51+ ≈ 0 — orden relativo fiable.
-3. **Mejoras:** calibración isotónica, `CausalForestDML`, o modelos con `predict_proba` bien calibrados (Platt scaling).
+3. **Mejoras implementadas:** `CausalForestDML`, `calibrate_cate_to_ate` (shift/scale), mediación del funnel en `src/mediation.py`.
 
 ---
 
-## 8. Outcomes múltiples: `or` y `ctor`
+## 8. Outcomes múltiples y mediación del funnel
 
 El funnel impone estructura:
 
 \[
 \text{ctor} = \text{or} \times \text{click\_si\_abrió}
+\quad\Rightarrow\quad
+\mathbb{E}[\text{ctor}\mid T] = P(\text{or}=1\mid T)\times P(\text{ctor}=1\mid \text{or}=1, T)
 \]
 
-Un nudge puede subir **apertura** (`or`) o **clics condicionados a apertura**. En los datos:
+Un nudge puede subir **apertura** (`or`) o **clics condicionados a apertura** (CTO). Descomposición Kitagawa–Blinder–Oaxaca (pesos tratamiento en la vía de conversión), implementada en `src/mediation.py`:
 
-- `trat1` y `trat2` suben `or` casi igual (+32 pp vs control).
-- `trat2` sube `ctor` mucho más que `trat1` (+40 pp vs control en `ctor`).
+\[
+\Delta\text{ctor} = \underbrace{\text{CTO}_{\text{ctrl}}\cdot\Delta\text{or}}_{\text{vía apertura}}
++ \underbrace{\text{OR}_{\text{trat}}\cdot\Delta\text{CTO}}_{\text{vía conversión}}
+\]
 
-Análisis causal avanzado futuro: **mediación** (efecto directo vs vía `or`).
+| Comparación | ATE ctor | Vía apertura | Vía conversión | Share conversión |
+|-------------|----------|--------------|----------------|------------------|
+| trat1 vs ctrl | +26.5 pp | +9.7 pp | +16.9 pp | **64%** |
+| trat2 vs ctrl | +40.2 pp | +9.7 pp | +30.5 pp | **76%** |
+| trat2 vs trat1 | +13.6 pp | ~0 | +13.6 pp | **~100%** |
+
+**Lectura causal:** ambos nudges abren el funnel (~+32 pp en `or`). La ventaja de `trat2` sobre `trat1` es **casi solo conversión post-apertura** (CTO 58% → 80%). No hace falta un PEMs complejo: la anidación `ctor ⊂ or` permite esta descomposición exacta.
+
+```python
+from src.mediation import funnel_mediation, all_funnel_mediations
+
+funnel_mediation(df, "trat2", "ctrl")
+all_funnel_mediations(df)
+```
 
 ---
 
-## 9. Flujo de código en el repositorio
+## 9. CausalForestDML y calibración post-hoc
+
+### CausalForestDML
+
+Bosque causal con residualización DML + árboles honestos para \(\tau(x)\). En este dataset (trat2 vs ctrl, `ctor`): media ≈ **0.19** — misma orden de magnitud que meta-learners; no cierra sola la brecha vs ATE 0.40.
+
+Activado por defecto en `fit_cate(..., include_causal_forest=True)`.
+
+### Calibración al ATE
+
+Para reportar magnitudes alineadas al RCT sin perder el **ranking** de segmentos:
+
+```python
+from src.causal import calibrate_cate_to_ate
+
+# shift: cate - mean(cate) + ATE  (preserva diferencias relativas)
+cate_cal = calibrate_cate_to_ate(est.cate_x, ate=0.4015, method="shift")
+```
+
+Usar CATE crudo para **quién priorizar**; CATE calibrado solo si se necesita comunicar magnitudes por segmento alineadas al ATE global.
+
+---
+
+## 10. Flujo de código en el repositorio
 
 ```python
 from src.data import load_data
-from src.causal import prep_binary_comparison, fit_cate, validate_cate_vs_ate, segment_cate_summary
+from src.causal import (
+    prep_binary_comparison, fit_cate, validate_cate_vs_ate,
+    segment_cate_summary, calibrate_cate_to_ate,
+)
+from src.mediation import funnel_mediation
 
 df = load_data()
+print(funnel_mediation(df, "trat2", "ctrl"))
+
 X, T, Y = prep_binary_comparison(df, treatment_arm="trat2", outcome="ctor")
-est = fit_cate(X, T, Y, label="trat2 vs ctrl (ctor)", include_dml=True)
+est = fit_cate(X, T, Y, label="trat2 vs ctrl (ctor)")
 
 print(est.summary())
 print(validate_cate_vs_ate(df, "trat2", "ctor", est))
@@ -234,13 +280,17 @@ segment_cate_summary(
 )
 ```
 
+Tests: `pytest tests/` — ATE, mediación del funnel, calibración y validación CATE.
+
 Notebook: [`notebooks/03_causal_ml_heterogeneity.ipynb`](../notebooks/03_causal_ml_heterogeneity.ipynb).
 
 ---
 
-## 10. Referencias
+## 11. Referencias
 
 - Imbens & Rubin (2015). *Causal Inference for Statistics, Social, and Biomedical Sciences*.
 - Chernozhukov et al. (2018). Double/debiased machine learning for treatment and structural parameters.
+- Athey, Tibshirani & Wager (2019). Generalized random forests.
+- Kitagawa (1955) / Blinder–Oaxaca — descomposiciones de diferencias de medias.
 - [EconML documentation](https://econml.azurewebsites.net/) — meta-learners y DML.
 - Künzel et al. (2019). Metalearners for estimating heterogeneous treatment effects using machine learning.

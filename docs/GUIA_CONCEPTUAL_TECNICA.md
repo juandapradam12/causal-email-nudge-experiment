@@ -304,7 +304,18 @@ La **media del CATE debería aproximar el ATE** (ambos estiman el mismo estimand
 
 - Usar CATE para **ranking relativo de segmentos** (quién responde más vs menos), no para magnitudes absolutas de impacto.
 - Para magnitudes absolutas, confiar en el **ATE del notebook 02**.
-- Mejoras futuras: `CausalForestDML`, calibración isotónica, o `LinearDML` con cross-fitting.
+- Opcional: `calibrate_cate_to_ate(cate, ate, method="shift")` alinea la media al ATE preservando el ranking.
+- Estimadores adicionales: `LinearDML` y `CausalForestDML` (mismo orden de magnitud ~0.16–0.20).
+
+#### Mediación del funnel (`src/mediation.py`)
+
+Como `ctor` está anidado en `or`:
+
+| Comparación | Vía apertura | Vía conversión | Insight |
+|-------------|--------------|----------------|---------|
+| trat1 vs ctrl | 36% | **64%** | También mejora CTO, no solo apertura |
+| trat2 vs ctrl | 24% | **76%** | Conversión post-apertura es el motor |
+| trat2 vs trat1 | ~0% | **~100%** | Misma apertura; trat2 gana solo en clic |
 
 ---
 
@@ -369,7 +380,9 @@ causal-email-nudge-experiment/
 ├── src/
 │   ├── data.py       # Carga y tipado
 │   ├── analysis.py   # ATE, regresión, impacto
-│   └── causal.py     # CATE con meta-learners
+│   ├── causal.py     # CATE (meta-learners + DML + CausalForest)
+│   └── mediation.py  # Descomposición funnel or → ctor
+├── tests/test_core.py
 ├── scripts/build_notebooks.py
 └── requirements.txt
 ```
@@ -385,17 +398,16 @@ causal-email-nudge-experiment/
 | Unidades i.i.d. | Muestra aleatoria simple | Bajo |
 | Medición correcta | Sin nulos, binarias consistentes | Bajo |
 | External validity | Solo 5k de 500k | Medio — validar en rollout |
-| CATE calibrado | Brecha ATE vs media CATE | Alto — usar solo para ranking |
+| CATE calibrado | Brecha ATE vs media CATE | Medio — ranking + `calibrate_cate_to_ate` |
 
 ---
 
 ## 9. Próximos pasos técnicos sugeridos
 
-1. **CausalForestDML** (EconML) con cross-fitting para CATE mejor calibrado.
-2. **Análisis de mediación:** ¿cuánto del efecto en `ctor` pasa por `or`?
-3. **Policy learning:** reglas de tratamiento óptimo con `PolicyTree` (DR-Learner solo con especificación fina en binarios).
-4. **Mantener narrativa en Markdown** — [`04_DATA_STORYTELLING.md`](04_DATA_STORYTELLING.md) para revisión en GitHub.
-5. **Tests unitarios** en `src/analysis.py` y `src/causal.py` con fixtures del CSV.
+1. **Policy learning:** reglas de tratamiento óptimo (`PolicyTree`) por segmento.
+2. **Calibración avanzada:** Platt / isotónica sobre `predict_proba` de los modelos base.
+3. **Rollout secuencial:** validar external validity en una cohorte holdout de los 500k.
+4. Mantener narrativa en Markdown — [`04_DATA_STORYTELLING.md`](04_DATA_STORYTELLING.md).
 
 ---
 
@@ -403,5 +415,7 @@ causal-email-nudge-experiment/
 
 - **ATE / diff-in-means:** estimador principal en RCT; ver `src/analysis.py`.
 - **Regresión logística:** odds ratios ajustados; notebook 02.
-- **S/T/X-Learner y LinearDML:** efectos heterogéneos; `src/causal.py`, [`CAUSAL_ML.md`](CAUSAL_ML.md), [EconML docs](https://econml.azurewebsites.net/).
+- **S/T/X-Learner, LinearDML, CausalForestDML:** `src/causal.py`, [`CAUSAL_ML.md`](CAUSAL_ML.md).
+- **Mediación funnel:** `src/mediation.py`.
+- **Tests:** `pytest tests/`.
 - **Marco potencial de resultados:** Imbens & Rubin (2015), *Causal Inference for Statistics, Social, and Biomedical Sciences*.
