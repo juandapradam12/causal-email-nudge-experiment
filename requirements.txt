@@ -9,3 +9,4 @@ jupyter>=1.0
 nbconvert>=7.0
 econml>=0.15
 causalml>=0.15
+pytest>=7.0

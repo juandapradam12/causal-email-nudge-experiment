@@ -388,7 +388,7 @@ write(
         ),
         md(
             "---\n\n"
-            "**Exportar:** `jupyter nbconvert --to html notebooks/04_data_storytelling.ipynb`"
+            "**Narrativa en Markdown:** ver [`docs/04_DATA_STORYTELLING.md`](../docs/04_DATA_STORYTELLING.md)"
         ),
     ],
 )
