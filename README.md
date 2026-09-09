@@ -1,65 +1,65 @@
 # causal-email-nudge-experiment
 
-Análisis causal de un experimento A/B de emails con nudges de ciencias del comportamiento. El proyecto cubre el enunciado de la prueba técnica (EDA, análisis básico, data storytelling) y una extensión con **Causal ML** para estimar efectos heterogéneos (CATE).
+Causal analysis of an email A/B experiment with behavioral-science nudges. The project covers the technical-assignment brief (EDA, basic analysis, data storytelling) plus an extension with **Causal ML** to estimate heterogeneous effects (CATE).
 
-## Contexto del experimento
+## Experiment context
 
-Un banco probó tres variantes de email para aumentar:
+A bank tested three email variants to increase:
 
-- **Open rate** (`or`): ¿el cliente abrió el email?
-- **Click-to-open rate** (`ctor`): ¿clicó en el botón de acción?
+- **Open rate** (`or`): did the customer open the email?
+- **Click-to-open rate** (`ctor`): did they click the call-to-action button?
 
-| Grupo  | Descripción |
+| Group  | Description |
 |--------|-------------|
-| `ctrl` | Email control (sin nudge) — **referencia causal**, no “sin email” |
-| `trat1`| Email con nudge de comportamiento 1 |
-| `trat2`| Email con nudge de comportamiento 2 |
+| `ctrl` | Control email (no nudge) — **causal reference**, not "no email" |
+| `trat1`| Email with behavioral nudge 1 |
+| `trat2`| Email with behavioral nudge 2 |
 
-Diseño: experimento aleatorizado (RCT) con 5.000 clientes muestreados de 500.000.
+Design: randomized controlled trial (RCT) with 5,000 customers sampled from 500,000.
 
-Documentación de referencia en [`docs/`](docs/):
+Reference documentation in [`docs/`](docs/):
 
-- [`GUIA_CONCEPTUAL_TECNICA.md`](docs/GUIA_CONCEPTUAL_TECNICA.md) — marco causal, `ctrl` vs `trat`, resultados e interpretación
-- [`CAUSAL_ML.md`](docs/CAUSAL_ML.md) — identificación, meta-learners, DML, CausalForest, mediación, validación
-- [`04_DATA_STORYTELLING.md`](docs/04_DATA_STORYTELLING.md) — narrativa ejecutiva para el cliente
-- `DOE_prueba_tecnica.docx` — diseño del experimento
-- `Dic_Variables_Prueba_Tecnica.pdf` — diccionario de variables
+- [`GUIA_CONCEPTUAL_TECNICA.md`](docs/GUIA_CONCEPTUAL_TECNICA.md) — causal framework, `ctrl` vs `trat`, results and interpretation
+- [`CAUSAL_ML.md`](docs/CAUSAL_ML.md) — identification, meta-learners, DML, CausalForest, mediation, validation
+- [`04_DATA_STORYTELLING.md`](docs/04_DATA_STORYTELLING.md) — executive narrative for the client
+- `DOE_prueba_tecnica.docx` — experiment design
+- `Dic_Variables_Prueba_Tecnica.pdf` — variable dictionary
 
-## Diccionario de variables
+## Variable dictionary
 
-| Variable         | Tipo    | Descripción                          |
-|------------------|---------|--------------------------------------|
-| `iid`            | ID      | Identificador del cliente            |
-| `grupo`          | Factor  | Asignación: `ctrl`, `trat1`, `trat2` |
-| `or`             | Binaria | Abrió el email (0/1)                 |
-| `ctor`           | Binaria | Clic en botón (0/1)                  |
-| `sexo`           | Binaria | Sexo (0=mujer, 1=hombre)              |
-| `edad`           | Numérica| Edad (18–99)                         |
-| `inve`           | Numérica| Inversión en el banco                |
-| `uso_app`        | Binaria | Usa la app del banco (0/1)           |
-| `tarjeta_debito` | Binaria | Tiene tarjeta de débito (0/1)        |
-| `tipo_tarjeta`   | Factor  | Tipo de tarjeta (1–5)               |
-| `formacion`      | Factor  | Nivel educativo (1–5)                |
+| Variable         | Type      | Description                          |
+|------------------|-----------|--------------------------------------|
+| `iid`            | ID        | Customer identifier                  |
+| `grupo`          | Factor    | Assignment: `ctrl`, `trat1`, `trat2` |
+| `or`             | Binary    | Opened the email (0/1)               |
+| `ctor`           | Binary    | Clicked the button (0/1)             |
+| `sexo`           | Binary    | Sex (0=female, 1=male)               |
+| `edad`           | Numeric   | Age (18–99)                          |
+| `inve`           | Numeric   | Investment held at the bank          |
+| `uso_app`        | Binary    | Uses the bank app (0/1)              |
+| `tarjeta_debito` | Binary    | Has a debit card (0/1)               |
+| `tipo_tarjeta`   | Factor    | Card type (1–5)                      |
+| `formacion`      | Factor    | Education level (1–5)                |
 
-## Roadmap de notebooks
+## Notebook roadmap
 
-| Notebook | Contenido |
-|----------|-----------|
-| `01_load_and_eda.ipynb` | Carga, validación, EDA, balance de randomización |
-| `02_basic_experiment_analysis.ipynb` | ATE, tests, regresión, visualizaciones |
-| `03_causal_ml_heterogeneity.ipynb` | CATE (S/T/X, LinearDML, CausalForest), mediación funnel |
-| `04_data_storytelling.ipynb` | Narrativa para el cliente → ver [`docs/04_DATA_STORYTELLING.md`](docs/04_DATA_STORYTELLING.md) |
+| Notebook | Contents |
+|----------|----------|
+| `01_load_and_eda.ipynb` | Loading, validation, EDA, randomization balance |
+| `02_basic_experiment_analysis.ipynb` | ATE, tests, regression, visualizations |
+| `03_causal_ml_heterogeneity.ipynb` | CATE (S/T/X, LinearDML, CausalForest), funnel mediation |
+| `04_data_storytelling.ipynb` | Client narrative → see [`docs/04_DATA_STORYTELLING.md`](docs/04_DATA_STORYTELLING.md) |
 
-## Reportes ejecutados
+## Executed reports
 
-Versiones HTML de los notebooks ya ejecutados (con gráficos y tablas) en [`docs/reports/`](docs/reports/):
+Rendered HTML versions of the notebooks already executed (with charts and tables) in [`docs/reports/`](docs/reports/):
 
 - [`01_load_and_eda.html`](docs/reports/01_load_and_eda.html)
 - [`02_basic_experiment_analysis.html`](docs/reports/02_basic_experiment_analysis.html)
 - [`03_causal_ml_heterogeneity.html`](docs/reports/03_causal_ml_heterogeneity.html)
 - [`04_data_storytelling.html`](docs/reports/04_data_storytelling.html)
 
-Para regenerarlos: `bash scripts/export_reports.sh`.
+To regenerate them: `bash scripts/export_reports.sh`.
 
 ## Setup
 
@@ -67,11 +67,11 @@ Para regenerarlos: `bash scripts/export_reports.sh`.
 python -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-pytest tests/               # ATE, mediación y helpers CATE
+pytest tests/               # ATE, mediation, and CATE helpers
 jupyter lab
 ```
 
-## Estructura del proyecto
+## Project structure
 
 ```
 causal-email-nudge-experiment/
@@ -80,15 +80,15 @@ causal-email-nudge-experiment/
 ├── docs/
 ├── notebooks/
 ├── src/
-│   ├── data.py       # Carga y tipado
-│   ├── analysis.py   # ATE, regresión, impacto
+│   ├── data.py       # Loading and typing
+│   ├── analysis.py   # ATE, regression, impact
 │   ├── causal.py     # CATE (meta-learners + DML + CausalForest)
-│   └── mediation.py  # Descomposición funnel or → ctor
+│   └── mediation.py  # Funnel decomposition or → ctor
 ├── tests/
 ├── requirements.txt
 └── README.md
 ```
 
-## Licencia
+## License
 
-Proyecto personal de aprendizaje. Los datos provienen de una prueba técnica de análisis de datos.
+Personal learning project. The data comes from a data-analysis technical assignment.
