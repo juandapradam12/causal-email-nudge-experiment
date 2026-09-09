@@ -1,6 +1,6 @@
 # causal-email-nudge-experiment
 
-Análisis causal de un experimento A/B de emails con nudges de ciencias del comportamiento (caso BeWay). El proyecto cubre el enunciado de la prueba técnica (EDA, análisis básico, data storytelling) y una extensión con **Causal ML** para estimar efectos heterogéneos (CATE).
+Análisis causal de un experimento A/B de emails con nudges de ciencias del comportamiento. El proyecto cubre el enunciado de la prueba técnica (EDA, análisis básico, data storytelling) y una extensión con **Causal ML** para estimar efectos heterogéneos (CATE).
 
 ## Contexto del experimento
 
@@ -80,4 +80,4 @@ causal-email-nudge-experiment/
 
 ## Licencia
 
-Proyecto personal de aprendizaje. Los datos provienen de la prueba técnica BeWay.
+Proyecto personal de aprendizaje. Los datos provienen de una prueba técnica de análisis de datos.

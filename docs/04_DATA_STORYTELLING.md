@@ -1,6 +1,6 @@
 # 04 — Data storytelling para el cliente
 
-Narrativa ejecutiva del experimento de emails con nudges de ciencias del comportamiento (caso BeWay).
+Narrativa ejecutiva del experimento de emails con nudges de ciencias del comportamiento.
 
 ---
 

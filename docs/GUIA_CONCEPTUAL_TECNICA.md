@@ -367,7 +367,7 @@ Los nudges mueven el funnel en **dos puntos**:
 causal-email-nudge-experiment/
 ├── data/datos_prueba_tecnica.csv    # 5.000 filas del experimento
 ├── docs/
-│   ├── DOE_prueba_tecnica.docx      # Diseño del experimento (BeWay)
+│   ├── DOE_prueba_tecnica.docx      # Diseño del experimento
 │   ├── Dic_Variables_Prueba_Tecnica.pdf
 │   ├── GUIA_CONCEPTUAL_TECNICA.md   # ← este documento
 │   ├── CAUSAL_ML.md                 # Marco Causal ML (meta-learners, DML)
