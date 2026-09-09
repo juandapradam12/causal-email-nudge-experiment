@@ -20,3 +20,9 @@ venv/
 # Outputs
 outputs/
 *.html
+
+# Coverage
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
