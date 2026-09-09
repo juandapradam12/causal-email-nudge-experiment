@@ -1,0 +1,18 @@
+{
+  "name": "causal-email-nudge-experiment",
+  "user": "ubuntu",
+  "install": "bash .cursor/install.sh",
+  "terminals": [
+    {
+      "name": "jupyter-lab",
+      "command": "source .venv/bin/activate && jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --ServerApp.token='' --ServerApp.password=''",
+      "description": "JupyterLab server for the analysis notebooks (http://localhost:8888)."
+    }
+  ],
+  "ports": [
+    {
+      "name": "jupyterlab",
+      "port": 8888
+    }
+  ]
+}

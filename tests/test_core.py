@@ -6,9 +6,21 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.analysis import all_ate_comparisons, ate_proportion, scale_impact
-from src.causal import calibrate_cate_to_ate, prep_binary_comparison, validate_cate_vs_ate
-from src.data import load_data
+from src.analysis import (
+    all_ate_comparisons,
+    ate_proportion,
+    logistic_treatment_effects,
+    scale_impact,
+)
+from src.causal import (
+    CATEEstimates,
+    calibrate_cate_to_ate,
+    fit_cate,
+    prep_binary_comparison,
+    segment_cate_summary,
+    validate_cate_vs_ate,
+)
+from src.data import load_data, treatment_dummies
 from src.mediation import all_funnel_mediations, funnel_mediation, funnel_rates
 
 
@@ -124,3 +136,122 @@ def test_validate_cate_vs_ate_structure(df: pd.DataFrame) -> None:
     assert table.iloc[0]["metric"] == "ATE (diff medias)"
     assert len(table) == 6
     assert table.iloc[0]["gap_vs_ate"] == 0.0
+
+
+def test_treatment_dummies(df: pd.DataFrame) -> None:
+    dummies = treatment_dummies(df)
+    assert {"grupo_ctrl", "grupo_trat1", "grupo_trat2"}.issubset(dummies.columns)
+    assert len(dummies) == len(df)
+    # every client belongs to exactly one arm
+    assert (dummies.sum(axis=1) == 1).all()
+
+
+def test_calibrate_cate_scale_zero_mean_raises() -> None:
+    cate = np.array([-1.0, 1.0])  # mean == 0 -> scaling is undefined
+    with pytest.raises(ValueError):
+        calibrate_cate_to_ate(cate, ate=0.5, method="scale")
+
+
+def test_calibrate_cate_unknown_method_raises() -> None:
+    with pytest.raises(ValueError):
+        calibrate_cate_to_ate(np.array([0.1, 0.2]), ate=0.5, method="bogus")
+
+
+@pytest.mark.parametrize("outcome", ["or", "ctor"])
+def test_logistic_treatment_effects(df: pd.DataFrame, outcome: str) -> None:
+    res = logistic_treatment_effects(df, outcome)
+    # two treatment dummies vs the ctrl reference
+    assert len(res) == 2
+    assert {
+        "term",
+        "coef_log_odds",
+        "odds_ratio",
+        "p_value",
+        "ci_low",
+        "ci_high",
+    }.issubset(res.columns)
+    assert res["term"].str.contains("grupo").all()
+    assert (res["odds_ratio"] > 0).all()
+    assert (res["ci_low"] <= res["odds_ratio"]).all()
+    assert (res["odds_ratio"] <= res["ci_high"]).all()
+
+
+def test_segment_cate_summary_continuous_and_categorical() -> None:
+    cate_df = pd.DataFrame(
+        {
+            "edad": [20, 30, 40, 60, 70],
+            "uso_app": [0, 1, 0, 1, 1],
+            "cate_x": [0.1, 0.2, 0.3, 0.4, 0.5],
+        }
+    )
+    binned = segment_cate_summary(
+        cate_df, "edad", bins=[18, 35, 50, 100], labels=["18-35", "36-50", "51+"]
+    )
+    assert {"mean", "std", "count"}.issubset(binned.columns)
+    assert binned.loc["18-35", "count"] == 2
+    assert binned.loc["51+", "count"] == 2
+
+    categorical = segment_cate_summary(cate_df, "uso_app")
+    assert set(categorical.index) == {0, 1}
+    assert categorical.loc[1, "count"] == 3
+
+
+@pytest.fixture(scope="module")
+def small_binary(df: pd.DataFrame):
+    """Small balanced ctrl-vs-trat2 slice to keep model-fitting tests fast."""
+    sub = pd.concat(
+        [
+            df[df["grupo"] == "ctrl"].head(250),
+            df[df["grupo"] == "trat2"].head(250),
+        ]
+    )
+    return prep_binary_comparison(sub, "trat2", "ctor")
+
+
+def test_fit_cate_metalearners_only(small_binary) -> None:
+    X, T, Y = small_binary
+    est = fit_cate(
+        X, T, Y, "trat2 vs ctrl",
+        n_estimators=10,
+        include_dml=False,
+        include_causal_forest=False,
+    )
+    n = len(Y)
+    assert isinstance(est, CATEEstimates)
+    assert est.cate_s.shape == (n,)
+    assert est.cate_t.shape == (n,)
+    assert est.cate_x.shape == (n,)
+    assert est.cate_dml is None
+    assert est.cate_cf is None
+
+    frame = est.to_frame()
+    assert len(frame) == n
+    assert {"cate_s", "cate_t", "cate_x", "label"}.issubset(frame.columns)
+    assert "cate_dml" not in frame.columns
+    assert "cate_cf" not in frame.columns
+
+    summary = est.summary()
+    assert "mean_cate_x" in summary.index
+    assert "mean_cate_dml" not in summary.index
+
+
+def test_fit_cate_with_dml_and_causal_forest(small_binary) -> None:
+    X, T, Y = small_binary
+    est = fit_cate(
+        X, T, Y, "trat2 vs ctrl",
+        n_estimators=10,
+        dml_cv=2,
+        cf_n_estimators=8,
+    )
+    n = len(Y)
+    assert est.cate_dml is not None and est.cate_dml.shape == (n,)
+    assert est.cate_cf is not None and est.cate_cf.shape == (n,)
+
+    frame = est.to_frame()
+    assert {"cate_dml", "cate_cf"}.issubset(frame.columns)
+
+    summary = est.summary()
+    assert "mean_cate_dml" in summary.index
+    assert "mean_cate_cf" in summary.index
+    assert np.isfinite(summary["mean_cate_dml"])
+    assert np.isfinite(summary["mean_cate_cf"])
