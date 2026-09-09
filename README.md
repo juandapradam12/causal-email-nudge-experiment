@@ -50,6 +50,17 @@ Documentación de referencia en [`docs/`](docs/):
 | `03_causal_ml_heterogeneity.ipynb` | CATE (S/T/X, LinearDML, CausalForest), mediación funnel |
 | `04_data_storytelling.ipynb` | Narrativa para el cliente → ver [`docs/04_DATA_STORYTELLING.md`](docs/04_DATA_STORYTELLING.md) |
 
+## Reportes ejecutados
+
+Versiones HTML de los notebooks ya ejecutados (con gráficos y tablas) en [`docs/reports/`](docs/reports/):
+
+- [`01_load_and_eda.html`](docs/reports/01_load_and_eda.html)
+- [`02_basic_experiment_analysis.html`](docs/reports/02_basic_experiment_analysis.html)
+- [`03_causal_ml_heterogeneity.html`](docs/reports/03_causal_ml_heterogeneity.html)
+- [`04_data_storytelling.html`](docs/reports/04_data_storytelling.html)
+
+Para regenerarlos: `bash scripts/export_reports.sh`.
+
 ## Setup
 
 ```bash
