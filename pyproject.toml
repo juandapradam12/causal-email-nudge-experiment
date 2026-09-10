@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "causal-email-nudge-experiment"
+version = "0.1.0"
+description = "Causal analysis of an email A/B experiment with behavioral-science nudges"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+
+# Pinned, reproducible dependencies live in requirements.txt.
+# Install the local package for cwd-independent imports with: pip install -e .
+[tool.setuptools]
+packages = ["src"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+extend-exclude = ["notebooks", "docs", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501"]  # long string/formula literals are intentional

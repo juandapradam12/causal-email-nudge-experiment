@@ -70,7 +70,9 @@ def test_funnel_rates(df: pd.DataFrame) -> None:
 def test_funnel_mediation_reconstructs_ate(df: pd.DataFrame) -> None:
     med = funnel_mediation(df, "trat2", "ctrl").iloc[0]
     assert med["reconstructed"] == pytest.approx(med["ate_ctor"], abs=1e-10)
-    assert med["share_via_open"] + med["share_via_conversion"] == pytest.approx(1.0, abs=1e-10)
+    assert med["share_via_open"] + med["share_via_conversion"] == pytest.approx(
+        1.0, abs=1e-10
+    )
     # trat2 vs ctrl: both paths should contribute positively
     assert med["effect_via_open"] > 0
     assert med["effect_via_conversion"] > 0
@@ -211,7 +213,10 @@ def small_binary(df: pd.DataFrame):
 def test_fit_cate_metalearners_only(small_binary) -> None:
     X, T, Y = small_binary
     est = fit_cate(
-        X, T, Y, "trat2 vs ctrl",
+        X,
+        T,
+        Y,
+        "trat2 vs ctrl",
         n_estimators=10,
         include_dml=False,
         include_causal_forest=False,
@@ -238,7 +243,10 @@ def test_fit_cate_metalearners_only(small_binary) -> None:
 def test_fit_cate_with_dml_and_causal_forest(small_binary) -> None:
     X, T, Y = small_binary
     est = fit_cate(
-        X, T, Y, "trat2 vs ctrl",
+        X,
+        T,
+        Y,
+        "trat2 vs ctrl",
         n_estimators=10,
         dml_cv=2,
         cf_n_estimators=8,

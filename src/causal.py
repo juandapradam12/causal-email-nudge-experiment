@@ -11,7 +11,6 @@ from econml.metalearners import SLearner, TLearner, XLearner
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 
-
 DEFAULT_FEATURES = [
     "edad",
     "sexo",

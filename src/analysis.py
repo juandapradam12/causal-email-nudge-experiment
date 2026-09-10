@@ -72,7 +72,7 @@ def logistic_treatment_effects(
     if outcome == "or":
         formula = f'Q("or") ~ C(grupo, Treatment(reference="ctrl")) + {covariates}'
     else:
-        formula = f"{outcome} ~ C(grupo, Treatment(reference=\"ctrl\")) + {covariates}"
+        formula = f'{outcome} ~ C(grupo, Treatment(reference="ctrl")) + {covariates}'
 
     model = smf.logit(formula, data=df).fit(disp=0)
     rows = []

@@ -57,7 +57,9 @@ def funnel_mediation(
     reconstructed = via_open + via_convert
 
     share_open = via_open / delta_ctor if abs(delta_ctor) > 1e-12 else float("nan")
-    share_convert = via_convert / delta_ctor if abs(delta_ctor) > 1e-12 else float("nan")
+    share_convert = (
+        via_convert / delta_ctor if abs(delta_ctor) > 1e-12 else float("nan")
+    )
 
     return pd.DataFrame(
         [

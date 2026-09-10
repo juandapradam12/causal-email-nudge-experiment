@@ -64,9 +64,14 @@ def test_scored_frame_shapes() -> None:
 
 def test_evaluate_uplift_real_out_of_sample(df: pd.DataFrame) -> None:
     scores, scored = evaluate_uplift(
-        df, "trat2", "ctor",
+        df,
+        "trat2",
+        "ctor",
         learners=("t", "x", "cf"),
-        n_estimators=20, dml_cv=2, test_size=0.3, random_state=0,
+        n_estimators=20,
+        dml_cv=2,
+        test_size=0.3,
+        random_state=0,
     )
     # one row per learner, finite metrics, sorted by qini desc
     assert set(scores["model"]) == {"cate_t", "cate_x", "cate_cf"}
@@ -83,8 +88,13 @@ def test_evaluate_uplift_real_out_of_sample(df: pd.DataFrame) -> None:
 @pytest.mark.parametrize("kind", ["qini", "gain"])
 def test_uplift_curve_points(df: pd.DataFrame, kind: str) -> None:
     _, scored = evaluate_uplift(
-        df, "trat2", "ctor", learners=("x",),
-        n_estimators=20, test_size=0.3, random_state=0,
+        df,
+        "trat2",
+        "ctor",
+        learners=("x",),
+        n_estimators=20,
+        test_size=0.3,
+        random_state=0,
     )
     curve = uplift_curve_points(scored, "cate_x", kind=kind)
     assert len(curve) > 0

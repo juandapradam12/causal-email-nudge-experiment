@@ -88,8 +88,12 @@ def scored_frame(
     tau_by_model: dict[str, np.ndarray],
 ) -> pd.DataFrame:
     """Assemble the frame expected by ``causalml.metrics`` (y, w, model cols)."""
-    frame = pd.DataFrame({OUTCOME_COL: np.asarray(Y_test, dtype=float),
-                          TREATMENT_COL: np.asarray(T_test, dtype=int)})
+    frame = pd.DataFrame(
+        {
+            OUTCOME_COL: np.asarray(Y_test, dtype=float),
+            TREATMENT_COL: np.asarray(T_test, dtype=int),
+        }
+    )
     for name, tau in tau_by_model.items():
         frame[name] = np.asarray(tau, dtype=float)
     return frame
@@ -116,18 +120,20 @@ def uplift_scores(
         # as a model to rank by, so pass exactly one model column at a time.
         sub = scored[[OUTCOME_COL, TREATMENT_COL, col]]
         q = qini_score(
-            sub, outcome_col=OUTCOME_COL, treatment_col=TREATMENT_COL,
+            sub,
+            outcome_col=OUTCOME_COL,
+            treatment_col=TREATMENT_COL,
             normalize=normalize,
         )
         a = auuc_score(
-            sub, outcome_col=OUTCOME_COL, treatment_col=TREATMENT_COL,
+            sub,
+            outcome_col=OUTCOME_COL,
+            treatment_col=TREATMENT_COL,
             normalize=normalize,
         )
         rows.append({"model": col, "qini": float(q[col]), "auuc": float(a[col])})
     return (
-        pd.DataFrame(rows)
-        .sort_values("qini", ascending=False)
-        .reset_index(drop=True)
+        pd.DataFrame(rows).sort_values("qini", ascending=False).reset_index(drop=True)
     )
 
 
@@ -158,9 +164,14 @@ def evaluate_uplift(
         X, T, Y, test_size=test_size, random_state=random_state, stratify=T
     )
     tau_by_model = fit_predict_cate_oos(
-        X_train, T_train, Y_train, X_test,
-        learners=learners, n_estimators=n_estimators,
-        random_state=random_state, dml_cv=dml_cv,
+        X_train,
+        T_train,
+        Y_train,
+        X_test,
+        learners=learners,
+        n_estimators=n_estimators,
+        random_state=random_state,
+        dml_cv=dml_cv,
     )
     scored = scored_frame(Y_test, T_test, tau_by_model)
     scores = uplift_scores(scored, normalize=normalize)
