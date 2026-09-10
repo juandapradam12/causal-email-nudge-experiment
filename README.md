@@ -91,4 +91,6 @@ causal-email-nudge-experiment/
 
 ## License
 
-Personal learning project. The data comes from a data-analysis technical assignment.
+Code released under the [MIT License](LICENSE).
+
+Personal learning project. The dataset comes from a data-analysis technical assignment and is included for demonstration purposes only.
