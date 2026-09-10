@@ -286,7 +286,44 @@ Notebook: [`notebooks/03_causal_ml_heterogeneity.ipynb`](../notebooks/03_causal_
 
 ---
 
-## 11. Referencias
+## 11. Validación out-of-sample (uplift) e incertidumbre
+
+Estimar el CATE no basta: hay que demostrar que el modelo **ordena** a los clientes por
+respuesta y acotar la **incertidumbre**. Esto vive en [`src/uplift.py`](../src/uplift.py) y en
+el notebook [`05_uplift_validation.ipynb`](../notebooks/05_uplift_validation.ipynb).
+
+**1. Ranking fuera de muestra (Qini / AUUC).** Se divide control + tratamiento en train/test
+(estratificado por tratamiento), se ajusta el CATE en *train* y se puntúa el *test* que el
+modelo no vio. Las métricas de `causalml.metrics` comparan la curva del modelo contra el
+targeting aleatorio:
+
+- **Qini**: área entre la curva Qini del modelo y la del azar (normalizada, ~0 = aleatorio).
+- **AUUC**: área bajo la curva de ganancia acumulada.
+
+```python
+from src.uplift import evaluate_uplift
+
+scores, scored = evaluate_uplift(df, "trat2", "ctor", learners=("t", "x", "cf"))
+print(scores)  # qini/auuc por learner, ordenado de mejor a peor
+```
+
+Un Qini claramente positivo fuera de muestra es la evidencia de que el *targeting* del
+notebook 03 realmente funciona (no es sobreajuste). El `CausalForestDML` suele liderar.
+
+**2. Intervalos de confianza del CATE.** El `CausalForestDML` entrega IC por individuo; se
+marca como *significativo* a quien tiene un intervalo que excluye el 0, evitando
+sobre-interpretar diferencias entre segmentos que podrían ser ruido.
+
+```python
+from src.uplift import cate_with_confidence, summarize_cate_ci
+
+ci = cate_with_confidence(df, "trat2", "ctor")   # cate, ci_lower, ci_upper, significant
+print(summarize_cate_ci(ci))                      # mean_cate, mean_ci_width, frac_significant
+```
+
+---
+
+## 12. Referencias
 
 - Imbens & Rubin (2015). *Causal Inference for Statistics, Social, and Biomedical Sciences*.
 - Chernozhukov et al. (2018). Double/debiased machine learning for treatment and structural parameters.

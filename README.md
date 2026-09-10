@@ -49,6 +49,7 @@ Reference documentation in [`docs/`](docs/):
 | `02_basic_experiment_analysis.ipynb` | ATE, tests, regression, visualizations |
 | `03_causal_ml_heterogeneity.ipynb` | CATE (S/T/X, LinearDML, CausalForest), funnel mediation |
 | `04_data_storytelling.ipynb` | Client narrative → see [`docs/04_DATA_STORYTELLING.md`](docs/04_DATA_STORYTELLING.md) |
+| `05_uplift_validation.ipynb` | Out-of-sample uplift (Qini/AUUC) and CATE confidence intervals |
 
 ## Executed reports
 
@@ -58,6 +59,7 @@ Rendered HTML versions of the notebooks already executed (with charts and tables
 - [`02_basic_experiment_analysis.html`](docs/reports/02_basic_experiment_analysis.html)
 - [`03_causal_ml_heterogeneity.html`](docs/reports/03_causal_ml_heterogeneity.html)
 - [`04_data_storytelling.html`](docs/reports/04_data_storytelling.html)
+- [`05_uplift_validation.html`](docs/reports/05_uplift_validation.html)
 
 To regenerate them: `bash scripts/export_reports.sh`.
 
@@ -83,7 +85,8 @@ causal-email-nudge-experiment/
 │   ├── data.py       # Loading and typing
 │   ├── analysis.py   # ATE, regression, impact
 │   ├── causal.py     # CATE (meta-learners + DML + CausalForest)
-│   └── mediation.py  # Funnel decomposition or → ctor
+│   ├── mediation.py  # Funnel decomposition or → ctor
+│   └── uplift.py     # Out-of-sample uplift (Qini/AUUC) + CATE confidence intervals
 ├── tests/
 ├── requirements.txt
 └── README.md
