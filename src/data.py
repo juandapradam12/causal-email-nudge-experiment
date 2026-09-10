@@ -11,9 +11,9 @@ BINARY_COLS = ["or", "ctor", "sexo", "uso_app", "tarjeta_debito"]
 NUMERIC_COLS = ["edad", "inve"]
 
 GROUP_LABELS = {
-    "ctrl": "Control (sin nudge)",
-    "trat1": "Tratamiento 1 (nudge 1)",
-    "trat2": "Tratamiento 2 (nudge 2)",
+    "ctrl": "Control (no nudge)",
+    "trat1": "Treatment 1 (nudge 1)",
+    "trat2": "Treatment 2 (nudge 2)",
 }
 
 
