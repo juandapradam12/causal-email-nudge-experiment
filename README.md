@@ -1,4 +1,4 @@
-# causal-email-nudge-experiment
+# Causal Email Nudge Experiment
 
 **A single behavioral nudge nearly 5× the email click-through rate in a randomized experiment.** This project proves that effect causally, quantifies it at scale (~200K extra clicks), and uses Causal ML to pinpoint *which* customers to target — packaged as a reproducible, tested analysis.
 
