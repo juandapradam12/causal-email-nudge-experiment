@@ -1,105 +1,106 @@
-# Guía conceptual y técnica — Experimento de emails con nudges
+# Conceptual and technical guide — Email experiment with nudges
 
-Documento de referencia para el proyecto `causal-email-nudge-experiment`. Resume el problema de negocio, el marco causal, la implementación en código y cómo interpretar cada resultado numérico.
+Reference document for the `causal-email-nudge-experiment` project. It summarizes the business problem, the causal framework, the code implementation, and how to interpret each numerical result.
 
 ---
 
-## 1. El problema de negocio
+## 1. The business problem
 
-Un banco quiere **aumentar la interacción** con emails transaccionales o de marketing. En lugar de probar solo copy o diseño visual, el experimento evalúa **nudges de ciencias del comportamiento** incrustados en el email.
+A bank wants to **increase engagement** with transactional or marketing emails. Instead of testing only copy or visual design, the experiment evaluates **behavioral-science nudges** embedded in the email.
 
-### Preguntas que responde el proyecto
+### Questions the project answers
 
-| Nivel | Pregunta | Método |
+| Level | Question | Method |
 |-------|----------|--------|
-| Descriptivo | ¿Cómo se distribuyen los clientes y outcomes? | EDA (`01_load_and_eda.ipynb`) |
-| Inferencial global | ¿Los nudges funcionan en promedio? | ATE, tests, regresión (`02_basic_experiment_analysis.ipynb`) |
-| Inferencial local | ¿Para **quién** funciona mejor cada nudge? | CATE con meta-learners (`03_causal_ml_heterogeneity.ipynb`) |
-| Decisión | ¿Qué desplegar y a qué escala? | Storytelling + impacto (`04_data_storytelling.ipynb`) |
+| Descriptive | How are customers and outcomes distributed? | EDA (`01_load_and_eda.ipynb`) |
+| Global inference | Do the nudges work on average? | ATE, tests, regression (`02_basic_experiment_analysis.ipynb`) |
+| Local inference | For **whom** does each nudge work best? | CATE with meta-learners (`03_causal_ml_heterogeneity.ipynb`) |
+| Validation | Does the targeting hold out-of-sample? | Qini/AUUC + CATE CIs (`05_uplift_validation.ipynb`) |
+| Decision | What to deploy and at what scale? | Storytelling + impact (`04_data_storytelling.ipynb`) |
 
-### Diseño experimental (RCT)
+### Experimental design (RCT)
 
-- **Población objetivo:** 500.000 clientes del banco.
-- **Muestra analizada:** 5.000 clientes (1% aprox.), asignados aleatoriamente.
-- **Brazos:**
-  - `ctrl` — email control (sin nudge).
-  - `trat1` — nudge de comportamiento 1.
-  - `trat2` — nudge de comportamiento 2.
+- **Target population:** 500,000 bank customers.
+- **Analyzed sample:** 5,000 customers (~1%), randomly assigned.
+- **Arms:**
+  - `ctrl` — control email (no nudge).
+  - `trat1` — behavioral nudge 1.
+  - `trat2` — behavioral nudge 2.
 
-La aleatorización es la pieza clave: en un RCT bien ejecutado, **no necesitamos controlar covariables para estimar el efecto causal promedio (ATE)**. Las covariables entran en juego para (a) verificar balance, (b) ganar precisión en regresión y (c) estimar efectos heterogéneos (CATE).
+Randomization is the key piece: in a well-executed RCT, **we do not need to control for covariates to estimate the average causal effect (ATE)**. Covariates come into play to (a) check balance, (b) gain precision in regression, and (c) estimate heterogeneous effects (CATE).
 
-### ¿Qué es `ctrl` y qué es `trat`? (conceptual)
+### What is `ctrl` and what is `trat`? (conceptual)
 
-Los nombres en la columna `grupo` son **brazos del experimento**, no etiquetas arbitrarias:
+The names in the `grupo` column are **experiment arms**, not arbitrary labels:
 
-| Código | Nombre usual | Qué es en la práctica |
-|--------|--------------|------------------------|
-| `ctrl` | **Control** | Email **sin** nudge de ciencias del comportamiento. Es la **referencia causal**: “¿qué pasa con el email estándar?” |
-| `trat1` | **Tratamiento 1** | Mismo email base + **nudge A** (ej. anclaje, urgencia, framing distinto). |
-| `trat2` | **Tratamiento 2** | Mismo email base + **nudge B** (otra intervención conductual). |
+| Code | Usual name | What it is in practice |
+|------|------------|------------------------|
+| `ctrl` | **Control** | Email **without** the behavioral-science nudge. It is the **causal reference**: "what happens with the standard email?" |
+| `trat1` | **Treatment 1** | Same base email + **nudge A** (e.g. anchoring, urgency, different framing). |
+| `trat2` | **Treatment 2** | Same base email + **nudge B** (another behavioral intervention). |
 
-**`ctrl` no significa “no recibir email”.** Todos los clientes reciben un email; el control recibe la versión **sin** el nudge experimental. La pregunta causal es: *¿el nudge mejora la interacción respecto al email que ya enviábamos?*
+**`ctrl` does not mean "receive no email".** Every customer receives an email; control receives the version **without** the experimental nudge. The causal question is: *does the nudge improve engagement relative to the email we were already sending?*
 
-**`trat` (trat1 / trat2)** son **intervenciones** que queremos evaluar. Cada uno define un resultado potencial distinto:
+**`trat` (trat1 / trat2)** are the **interventions** we want to evaluate. Each defines a distinct potential outcome:
 
 \[
 Y_i(\text{ctrl}),\quad Y_i(\text{trat1}),\quad Y_i(\text{trat2})
 \]
 
-Para el cliente \(i\) solo observamos **uno** — el del brazo asignado aleatoriamente:
+For customer \(i\) we only observe **one** — the one for the randomly assigned arm:
 
 \[
 Y_i^{\text{obs}} = Y_i(T_i), \quad T_i \in \{\text{ctrl}, \text{trat1}, \text{trat2}\}
 \]
 
-Los otros dos son **contrafactuales** (no observados). La aleatorización permite sustituir expectativas contrafactuales por medias del grupo correspondiente:
+The other two are **counterfactuals** (unobserved). Randomization lets us replace counterfactual expectations with the corresponding group means:
 
 \[
 ATE_{\text{trat2 vs ctrl}} = \mathbb{E}[Y(\text{trat2}) - Y(\text{ctrl})] \approx \bar{Y}_{\text{trat2}} - \bar{Y}_{\text{ctrl}}
 \]
 
-**Analogía:** en un ensayo clínico, “placebo” no es “sin medicina”; es el tratamiento de referencia. Aquí `ctrl` es el email de referencia; `trat1` y `trat2` son las variantes con nudge.
+**Analogy:** in a clinical trial, "placebo" is not "no medicine"; it is the reference treatment. Here `ctrl` is the reference email; `trat1` and `trat2` are the nudge variants.
 
-Para profundidad en CATE, meta-learners y DML, ver [`CAUSAL_ML.md`](CAUSAL_ML.md).
+For depth on CATE, meta-learners and DML, see [`CAUSAL_ML.md`](CAUSAL_ML.md).
 
 ---
 
-## 2. Variables y su significado causal
+## 2. Variables and their causal meaning
 
-| Variable | Tipo | Rol causal | Interpretación |
-|----------|------|------------|----------------|
-| `iid` | ID | — | Identificador único del cliente |
-| `grupo` | Tratamiento \(T\) | **Intervención** | Variante de email recibida |
-| `or` | Binaria | **Outcome intermedio** | ¿Abrió el email? (open rate) |
-| `ctor` | Binaria | **Outcome final** | ¿Hizo clic en el botón? |
-| `sexo`, `edad`, `inve`, `uso_app`, `tarjeta_debito`, `tipo_tarjeta`, `formacion` | Covariables \(X\) | **Pre-tratamiento** | Perfil del cliente antes del email |
+| Variable | Type | Causal role | Interpretation |
+|----------|------|-------------|----------------|
+| `iid` | ID | — | Unique customer identifier |
+| `grupo` | Treatment \(T\) | **Intervention** | Email variant received |
+| `or` | Binary | **Intermediate outcome** | Did they open the email? (open rate) |
+| `ctor` | Binary | **Final outcome** | Did they click the button? |
+| `sexo`, `edad`, `inve`, `uso_app`, `tarjeta_debito`, `tipo_tarjeta`, `formacion` | Covariates \(X\) | **Pre-treatment** | Customer profile before the email |
 
-### Relación entre `or` y `ctor`
+### Relationship between `or` and `ctor`
 
-En los datos, **`ctor` está anidado en `or`**: si `or = 0`, entonces `ctor = 0` siempre. Por tanto:
+In the data, **`ctor` is nested within `or`**: if `or = 0`, then `ctor = 0` always. Therefore:
 
 \[
-\text{ctor} = \mathbb{1}[\text{abrió}] \times \mathbb{1}[\text{clicó}]
+\text{ctor} = \mathbb{1}[\text{opened}] \times \mathbb{1}[\text{clicked}]
 \]
 
-- **Open rate:** \(\bar{or} = P(\text{abrir})\)
-- **Click rate (`ctor`):** \(P(\text{abrir} \cap \text{clicar})\) — tasa global de conversión a clic.
-- **Click-to-open (CTOR condicional):** \(P(\text{clic} \mid \text{abrir}) = \bar{ctor} / \bar{or}\) cuando \(or > 0\).
+- **Open rate:** \(\bar{or} = P(\text{open})\)
+- **Click rate (`ctor`):** \(P(\text{open} \cap \text{click})\) — overall click-conversion rate.
+- **Click-to-open (conditional CTOR):** \(P(\text{click} \mid \text{open}) = \bar{ctor} / \bar{or}\) when \(or > 0\).
 
-El nudge puede actuar en **dos etapas del funnel**:
+The nudge can act at **two funnel stages**:
 
-1. **Apertura** — el subject line / preview convence de abrir.
-2. **Conversión post-apertura** — el contenido del email convence de clicar.
+1. **Opening** — the subject line / preview convinces them to open.
+2. **Post-open conversion** — the email content convinces them to click.
 
-Por eso analizamos **ambos outcomes** por separado.
+That is why we analyze **both outcomes** separately.
 
 ---
 
-## 3. Marco causal: notación y estimandos
+## 3. Causal framework: notation and estimands
 
-### Modelo potencial de resultados (Rubin)
+### Potential outcomes model (Rubin)
 
-Para cada cliente \(i\) existen resultados potenciales \(Y_i(0), Y_i(1), Y_i(2)\) según el brazo asignado. Solo observamos uno:
+For each customer \(i\) there exist potential outcomes \(Y_i(0), Y_i(1), Y_i(2)\) depending on the assigned arm. We only observe one:
 
 \[
 Y_i^{\text{obs}} = Y_i(T_i), \quad T_i \in \{\text{ctrl}, \text{trat1}, \text{trat2}\}
@@ -107,22 +108,22 @@ Y_i^{\text{obs}} = Y_i(T_i), \quad T_i \in \{\text{ctrl}, \text{trat1}, \text{tr
 
 ### ATE (Average Treatment Effect)
 
-Para comparar `trat2` vs `ctrl` en click rate:
+To compare `trat2` vs `ctrl` on click rate:
 
 \[
 ATE = \mathbb{E}[Y(\text{trat2}) - Y(\text{ctrl})]
 \]
 
-En un RCT con outcome binario, el estimador natural es la **diferencia de proporciones**:
+In an RCT with a binary outcome, the natural estimator is the **difference in proportions**:
 
 \[
 \widehat{ATE} = \bar{Y}_{\text{trat2}} - \bar{Y}_{\text{ctrl}}
 \]
 
-**Resultados en este dataset:**
+**Results in this dataset:**
 
-| Comparación | Outcome | ATE (pp) | p-value | IC 95% |
-|-------------|---------|----------|---------|--------|
+| Comparison | Outcome | ATE (pp) | p-value | 95% CI |
+|------------|---------|----------|---------|--------|
 | trat1 vs ctrl | or | +31.9 pp | ≈ 0 | [28.7, 35.1] |
 | trat2 vs ctrl | or | +32.0 pp | ≈ 0 | [28.8, 35.1] |
 | trat2 vs trat1 | or | +0.0 pp | 1.00 | [-3.3, +3.4] |
@@ -130,12 +131,12 @@ En un RCT con outcome binario, el estimador natural es la **diferencia de propor
 | trat2 vs ctrl | ctor | +40.2 pp | ≈ 0 | [37.4, 42.9] |
 | trat2 vs trat1 | ctor | +13.6 pp | ≈ 0 | [10.3, 17.0] |
 
-**Lectura:**
+**Reading:**
 
-- Ambos nudges **duplican aproximadamente** la tasa de apertura (~29% → ~61%).
-- En apertura, **trat1 ≈ trat2** (no hay diferencia estadísticamente significativa).
-- En clics, **trat2 domina**: +40 pp vs control, y +14 pp vs trat1.
-- El nudge 2 mejora sobre el 1 principalmente en la **conversión a clic**, no en apertura.
+- Both nudges **roughly double** the open rate (~29% → ~61%).
+- On opening, **trat1 ≈ trat2** (no statistically significant difference).
+- On clicks, **trat2 dominates**: +40 pp vs control, and +14 pp vs trat1.
+- Nudge 2 improves over nudge 1 mainly in **click conversion**, not opening.
 
 ### CATE (Conditional Average Treatment Effect)
 
@@ -143,124 +144,125 @@ En un RCT con outcome binario, el estimador natural es la **diferencia de propor
 CATE(x) = \mathbb{E}[Y(1) - Y(0) \mid X = x]
 \]
 
-Responde: *¿cuánto beneficio extra obtiene un cliente con perfil \(x\) si recibe el tratamiento?*
+It answers: *how much extra benefit does a customer with profile \(x\) get from receiving the treatment?*
 
-Esto habilita **personalización**: enviar `trat2` primero a segmentos con CATE alto.
+This enables **personalization**: send `trat2` first to segments with a high CATE.
 
 ---
 
-## 4. Pipeline de análisis por fase
+## 4. Analysis pipeline by phase
 
 ```
 datos_prueba_tecnica.csv
         │
         ▼
-  src/data.py ─── load_data(), tipos, GROUP_LABELS
+  src/data.py ─── load_data(), types, GROUP_LABELS
         │
         ├──────────────────────────────────────────┐
         ▼                                          ▼
-  01 EDA                                    02 ATE clásico
-  • balance de grupos                       • diff proporciones + IC
-  • tasas or/ctor                           • chi-cuadrado
-  • balance covariables                     • regresión logística ajustada
+  01 EDA                                    02 Classic ATE
+  • group balance                           • diff in proportions + CI
+  • or/ctor rates                           • chi-square
+  • covariate balance                       • adjusted logistic regression
         │                                          │
         └──────────────────┬───────────────────────┘
                            ▼
                     03 Causal ML (CATE)
                     • T-Learner / X-Learner
-                    • segmentación por edad, uso_app
+                    • segmentation by age, uso_app
                            │
-                           ▼
-                    04 Storytelling
-                    • narrativa ejecutiva
-                    • impacto a 500k clientes
-                    • recomendaciones
+             ┌─────────────┴─────────────┐
+             ▼                           ▼
+      05 Uplift validation        04 Storytelling
+      • Qini / AUUC (OOS)         • executive narrative
+      • CATE confidence intervals • impact at 500k customers
+                                  • recommendations
 ```
 
-### Fase 1–2: Infraestructura (`src/data.py`)
+### Phase 1–2: Infrastructure (`src/data.py`)
 
 ```python
 from src.data import load_data, GROUP_LABELS
 df = load_data()
 ```
 
-- Tipifica `grupo` como categórica ordenada (`ctrl < trat1 < trat2`).
-- Convierte binarias a `int`.
-- Centraliza la ruta del CSV en `DATA_PATH`.
+- Types `grupo` as an ordered categorical (`ctrl < trat1 < trat2`).
+- Converts binaries to `int`.
+- Centralizes the CSV path in `DATA_PATH`.
 
-### Fase 3: EDA (`01_load_and_eda.ipynb`)
+### Phase 3: EDA (`01_load_and_eda.ipynb`)
 
-**Objetivo:** Validar calidad de datos y plausibilidad del diseño.
+**Goal:** Validate data quality and design plausibility.
 
-Checks implementados:
+Implemented checks:
 
-1. 5.000 filas, 5.000 `iid` únicos, sin nulos.
-2. Balance de tamaños por grupo (~1.650–1.700 por brazo).
-3. Tests de balance en covariables (ANOVA / chi-cuadrado).
+1. 5,000 rows, 5,000 unique `iid`, no nulls.
+2. Group-size balance (~1,650–1,700 per arm).
+3. Covariate balance tests (ANOVA / chi-square).
 
-**Tasas observadas por grupo:**
+**Observed rates per group:**
 
-| Grupo | Open rate | Click rate |
+| Group | Open rate | Click rate |
 |-------|-----------|------------|
 | ctrl  | 28.8%     | 8.7%       |
 | trat1 | 60.8%     | 35.3%      |
 | trat2 | 60.8%     | 48.9%      |
 
-**Nota sobre balance:** Algunas covariables (`edad`, `inve`, `sexo`) muestran p-values bajos en tests univariados. Esto es **esperable con 5.000 observaciones** — tests de balance detectan diferencias mínimas. Lo relevante es que las magnitudes sean pequeñas y que el ATE no dependa de ajustes (se verifica en fase 4).
+**Note on balance:** Some covariates (`edad`, `inve`, `sexo`) show low p-values in univariate tests. This is **expected with 5,000 observations** — balance tests detect tiny differences. What matters is that the magnitudes are small and that the ATE does not depend on adjustments (verified in phase 4).
 
-### Fase 4: Análisis clásico (`02_basic_experiment_analysis.ipynb` + `src/analysis.py`)
+### Phase 4: Classic analysis (`02_basic_experiment_analysis.ipynb` + `src/analysis.py`)
 
-#### Estimador de diff-in-means
+#### Diff-in-means estimator
 
-Para proporciones binarias, el error estándar es:
+For binary proportions, the standard error is:
 
 \[
 SE = \sqrt{\frac{p_T(1-p_T)}{n_T} + \frac{p_C(1-p_C)}{n_C}}
 \]
 
-IC 95%: \(\widehat{ATE} \pm 1.96 \cdot SE\)
+95% CI: \(\widehat{ATE} \pm 1.96 \cdot SE\)
 
-Implementación reutilizable:
+Reusable implementation:
 
 ```python
 from src.analysis import all_ate_comparisons, scale_impact
 
 ate_df = all_ate_comparisons(df)
-impact = scale_impact(ate_pp=0.4015, population_size=500_000, outcome_label="clics")
-# → ~200.773 clics adicionales vs control con trat2
+impact = scale_impact(ate_pp=0.4015, population_size=500_000, outcome_label="clicks")
+# → ~200,773 additional clicks vs control with trat2
 ```
 
-#### Regresión logística ajustada
+#### Adjusted logistic regression
 
-Modelo:
+Model:
 
 \[
 \log\frac{P(Y=1)}{1-P(Y=1)} = \beta_0 + \beta_1 \cdot \mathbb{1}[trat1] + \beta_2 \cdot \mathbb{1}[trat2] + \gamma^T X
 \]
 
-| Outcome | Tratamiento | OR | Interpretación |
-|---------|-------------|-----|----------------|
-| or | trat1 | 2.62 | 2.6× odds de abrir vs control |
-| or | trat2 | 1.66* | Ver nota abajo |
-| ctor | trat1 | 2.49 | 2.5× odds de clic vs control |
-| ctor | trat2 | 2.00 | 2× odds de clic vs control |
+| Outcome | Treatment | OR | Interpretation |
+|---------|-----------|-----|----------------|
+| or | trat1 | 2.62 | 2.6× odds of opening vs control |
+| or | trat2 | 1.66* | See note below |
+| ctor | trat1 | 2.49 | 2.5× odds of clicking vs control |
+| ctor | trat2 | 2.00 | 2× odds of clicking vs control |
 
-\*Los OR de `trat2` en open rate son menores que `trat1` **ajustando por covariables**, mientras que el ATE crudo es casi idéntico. Esto indica **confusión residual en covariables** (ligero desbalance) — otro motivo para confiar en el estimador no paramétrico del RCT como fuente principal.
+\*The `trat2` ORs on open rate are lower than `trat1` **after adjusting for covariates**, while the raw ATE is almost identical. This indicates **residual covariate confounding** (slight imbalance) — another reason to trust the RCT's nonparametric estimator as the primary source.
 
-### Fase 5: Causal ML (`03_causal_ml_heterogeneity.ipynb` + `src/causal.py`)
+### Phase 5: Causal ML (`03_causal_ml_heterogeneity.ipynb` + `src/causal.py`)
 
-#### ¿Por qué meta-learners?
+#### Why meta-learners?
 
-En un RCT, el ATE se estima fácilmente. Pero el negocio quiere **segmentos accionables**. Los meta-learners descomponen el problema en modelos de outcome supervisados:
+In an RCT the ATE is easy to estimate. But the business wants **actionable segments**. Meta-learners decompose the problem into supervised outcome models:
 
-| Learner | Idea | Fórmula del efecto |
-|---------|------|-------------------|
-| **S-Learner** | Un modelo con \(T\) como feature | \(\hat\tau(x) = \hat\mu(x,1) - \hat\mu(x,0)\) |
-| **T-Learner** | Modelo separado por brazo | \(\hat\tau(x) = \hat\mu_1(x) - \hat\mu_0(x)\) |
-| **X-Learner** | Usa propensity + imputación cruzada | Mejor cuando un brazo es más pequeño o hay heterogeneidad fuerte |
-| **LinearDML** | Cross-fitting + regresión ortogonal | Robusto a nuisance mal estimados; ver `CAUSAL_ML.md` |
+| Learner | Idea | Effect formula |
+|---------|------|----------------|
+| **S-Learner** | One model with \(T\) as a feature | \(\hat\tau(x) = \hat\mu(x,1) - \hat\mu(x,0)\) |
+| **T-Learner** | Separate model per arm | \(\hat\tau(x) = \hat\mu_1(x) - \hat\mu_0(x)\) |
+| **X-Learner** | Uses propensity + cross-imputation | Better when an arm is smaller or heterogeneity is strong |
+| **LinearDML** | Cross-fitting + orthogonal regression | Robust to poorly estimated nuisances; see `CAUSAL_ML.md` |
 
-Implementación:
+Implementation:
 
 ```python
 from src.causal import prep_binary_comparison, fit_cate, validate_cate_vs_ate
@@ -270,152 +272,175 @@ est = fit_cate(X, T, Y, label="trat2 vs ctrl (ctor)")
 validation = validate_cate_vs_ate(df, "trat2", "ctor", est)
 ```
 
-#### Resultados CATE (X-Learner, outcome `ctor`)
+#### CATE results (X-Learner, outcome `ctor`)
 
-| Comparación | ATE manual | Media CATE | Std CATE |
-|-------------|------------|------------|----------|
+| Comparison | Manual ATE | Mean CATE | CATE Std |
+|------------|------------|-----------|----------|
 | trat1 vs ctrl | 0.265 | 0.171 | 0.41 |
 | trat2 vs ctrl | 0.402 | 0.204 | 0.46 |
 
-#### Heterogeneidad detectada (trat2 vs ctrl)
+#### Detected heterogeneity (trat2 vs ctrl)
 
-| Segmento | Media CATE | Interpretación |
-|----------|------------|----------------|
-| Edad 18–35 | **0.67** | Jóvenes: respuesta muy alta al nudge 2 |
-| Edad 36–50 | 0.21 | Respuesta moderada |
-| Edad 51+ | **−0.01** | Sin beneficio neto (posible fatiga o mismatch) |
-| Sin app | 0.17 | |
-| Con app | **0.24** | Usuarios digitales responden más |
+| Segment | Mean CATE | Interpretation |
+|---------|-----------|----------------|
+| Age 18–35 | **0.67** | Younger: very high response to nudge 2 |
+| Age 36–50 | 0.21 | Moderate response |
+| Age 51+ | **−0.01** | No net benefit (possible fatigue or mismatch) |
+| No app | 0.17 | |
+| With app | **0.24** | Digital users respond more |
 
-#### ⚠️ Validación importante: calibración del CATE
+#### ⚠️ Important validation: CATE calibration
 
-La **media del CATE debería aproximar el ATE** (ambos estiman el mismo estimando bajo identificación causal). En este proyecto hay una **brecha sistemática** (~10–20 pp):
+The **mean CATE should approximate the ATE** (both estimate the same estimand under causal identification). In this project there is a **systematic gap** (~10–20 pp):
 
-- ATE manual trat2: **0.40**
-- Media CATE X-Learner: **0.20**
+- Manual ATE trat2: **0.40**
+- Mean X-Learner CATE: **0.20**
 
-**Causas probables:**
+**Probable causes:**
 
-1. **Outcome binario + Random Forest:** los meta-learners usan modelos de regresión/clasificación que pueden estar mal calibrados en las colas.
-2. **Alta varianza individual:** std(CATE) ≈ 0.46; muchos CATE negativos compensan los positivos extremos.
-3. **Propensity mal convergida:** en RCT la propensión es ~0.5, pero el modelo logístico puede no converger bien con muchas dummies (warning en notebook).
+1. **Binary outcome + Random Forest:** the meta-learners use regression/classification models that can be poorly calibrated in the tails.
+2. **High individual variance:** std(CATE) ≈ 0.46; many negative CATEs offset the extreme positive ones.
+3. **Poorly converged propensity:** in an RCT the propensity is ~0.5, but the logistic model may not converge well with many dummies (warning in the notebook).
 
-**Implicación práctica:**
+**Practical implication:**
 
-- Usar CATE para **ranking relativo de segmentos** (quién responde más vs menos), no para magnitudes absolutas de impacto.
-- Para magnitudes absolutas, confiar en el **ATE del notebook 02**.
-- Opcional: `calibrate_cate_to_ate(cate, ate, method="shift")` alinea la media al ATE preservando el ranking.
-- Estimadores adicionales: `LinearDML` y `CausalForestDML` (mismo orden de magnitud ~0.16–0.20).
+- Use CATE for **relative segment ranking** (who responds more vs less), not for absolute impact magnitudes.
+- For absolute magnitudes, trust the **ATE from notebook 02**.
+- Optional: `calibrate_cate_to_ate(cate, ate, method="shift")` aligns the mean to the ATE while preserving the ranking.
+- Additional estimators: `LinearDML` and `CausalForestDML` (same order of magnitude ~0.16–0.20).
+- The ranking is confirmed **out-of-sample** in phase 5b (Qini/AUUC), with formal confidence intervals per segment.
 
-#### Mediación del funnel (`src/mediation.py`)
+#### Funnel mediation (`src/mediation.py`)
 
-Como `ctor` está anidado en `or`:
+Because `ctor` is nested within `or`:
 
-| Comparación | Vía apertura | Vía conversión | Insight |
-|-------------|--------------|----------------|---------|
-| trat1 vs ctrl | 36% | **64%** | También mejora CTO, no solo apertura |
-| trat2 vs ctrl | 24% | **76%** | Conversión post-apertura es el motor |
-| trat2 vs trat1 | ~0% | **~100%** | Misma apertura; trat2 gana solo en clic |
+| Comparison | Via opening | Via conversion | Insight |
+|------------|-------------|----------------|---------|
+| trat1 vs ctrl | 36% | **64%** | Also improves CTO, not just opening |
+| trat2 vs ctrl | 24% | **76%** | Post-open conversion is the driver |
+| trat2 vs trat1 | ~0% | **~100%** | Same opening; trat2 wins only on clicks |
+
+### Phase 5b: Uplift validation (`05_uplift_validation.ipynb` + `src/uplift.py`)
+
+Estimating the CATE is not enough — we must show the model **ranks** customers well and quantify **uncertainty**:
+
+- **Out-of-sample ranking:** train/test split (stratified by treatment), fit on train, score the held-out test set, and measure **Qini** and **AUUC** (`causalml.metrics`). A clearly positive Qini beats random targeting and shows the targeting is not overfitting; the Causal Forest typically leads.
+- **Confidence intervals:** per-customer CIs from `CausalForestDML`, and a formal **group-average CI per segment** via `effect_inference(...).population_summary()`. The 18–35 and 36–50 segments are significant; the 51+ interval includes 0.
+
+```python
+from src.uplift import evaluate_uplift, cate_with_confidence, segment_cate_ci
+
+scores, scored = evaluate_uplift(df, "trat2", "ctor", learners=("t", "x", "cf"))
+seg = segment_cate_ci(df, "trat2", "edad", bins=[17, 35, 50, 100],
+                      labels=["18-35", "36-50", "51+"])
+```
 
 ---
 
-## 5. Diagrama del funnel causal
+## 5. Causal funnel diagram
 
 ```mermaid
 flowchart LR
-    A[Asignación aleatoria<br/>grupo] --> B{¿Abre email?<br/>or}
-    B -->|Sí| C{¿Clic?<br/>ctor}
+    A[Random assignment<br/>grupo] --> B{Opens email?<br/>or}
+    B -->|Yes| C{Click?<br/>ctor}
     B -->|No| D[ctor = 0]
-    C -->|Sí| E[Conversión]
-    C -->|No| F[Sin conversión]
+    C -->|Yes| E[Conversion]
+    C -->|No| F[No conversion]
 
     style A fill:#e3f2fd
     style E fill:#c8e6c9
 ```
 
-Los nudges mueven el funnel en **dos puntos**:
+The nudges move the funnel at **two points**:
 
-- **trat1 y trat2** → gran salto en `or` (apertura).
-- **trat2 adicional** → salto extra en `ctor` dado que ya abrieron.
+- **trat1 and trat2** → large jump in `or` (opening).
+- **trat2 additionally** → extra jump in `ctor` given that they already opened.
 
 ---
 
-## 6. Decisiones de negocio (Fase 6 — storytelling)
+## 6. Business decisions (storytelling)
 
-### Recomendación principal
+### Main recommendation
 
-**Desplegar `trat2` como variante principal** para la base de 500.000 clientes.
+**Deploy `trat2` as the main variant** for the base of 500,000 customers.
 
-### Impacto estimado
+### Estimated impact
 
-| Métrica | Control | Trat2 | Delta |
-|---------|---------|-------|-------|
+| Metric | Control | Trat2 | Delta |
+|--------|---------|-------|-------|
 | Click rate | 8.7% | 48.9% | **+40.2 pp** |
-| Clics en 500k | 43.650 | 244.400 | **+200.773** |
+| Clicks in 500k | 43,650 | 244,400 | **+200,773** |
 
-### Personalización sugerida
+### Suggested personalization
 
-1. **Priorizar `trat2` en clientes 18–35 y usuarios de app** (CATE alto).
-2. **Evaluar alternativa para 51+** — el CATE cercano a cero sugiere que el nudge 2 no aporta o puede ser contraproducente.
-3. **Mantener A/B continuo** post-lanzamiento para detectar fatiga del nudge.
+1. **Prioritize `trat2` for customers 18–35 and app users** (high CATE).
+2. **Evaluate an alternative for 51+** — the near-zero CATE suggests nudge 2 does not help or may be counterproductive.
+3. **Keep a continuous A/B** post-launch to detect nudge fatigue.
 
 ---
 
-## 7. Mapa de archivos del repositorio
+## 7. Repository file map
 
 ```
 causal-email-nudge-experiment/
-├── data/datos_prueba_tecnica.csv    # 5.000 filas del experimento
+├── data/datos_prueba_tecnica.csv    # 5,000 experiment rows
 ├── docs/
-│   ├── DOE_prueba_tecnica.docx      # Diseño del experimento
+│   ├── DOE_prueba_tecnica.docx      # Experiment design
 │   ├── Dic_Variables_Prueba_Tecnica.pdf
-│   ├── GUIA_CONCEPTUAL_TECNICA.md   # ← este documento
-│   ├── CAUSAL_ML.md                 # Marco Causal ML (meta-learners, DML)
-│   └── 04_DATA_STORYTELLING.md      # Narrativa ejecutiva (Markdown)
+│   ├── GUIA_CONCEPTUAL_TECNICA.md   # ← this document
+│   ├── CAUSAL_ML.md                 # Causal ML framework (meta-learners, DML)
+│   ├── 04_DATA_STORYTELLING.md      # Executive narrative (Markdown)
+│   └── reports/                     # Rendered, executed notebook reports (HTML)
 ├── notebooks/
 │   ├── 01_load_and_eda.ipynb
 │   ├── 02_basic_experiment_analysis.ipynb
 │   ├── 03_causal_ml_heterogeneity.ipynb
-│   └── 04_data_storytelling.ipynb
+│   ├── 04_data_storytelling.ipynb
+│   └── 05_uplift_validation.ipynb
 ├── src/
-│   ├── data.py       # Carga y tipado
-│   ├── analysis.py   # ATE, regresión, impacto
+│   ├── data.py       # Loading and typing
+│   ├── analysis.py   # ATE, regression, impact
 │   ├── causal.py     # CATE (meta-learners + DML + CausalForest)
-│   └── mediation.py  # Descomposición funnel or → ctor
+│   ├── mediation.py  # Funnel decomposition or → ctor
+│   └── uplift.py     # Out-of-sample uplift (Qini/AUUC) + CATE confidence intervals
 ├── tests/test_core.py
+├── tests/test_uplift.py
 ├── scripts/build_notebooks.py
+├── scripts/export_reports.sh
+├── pyproject.toml
 └── requirements.txt
 ```
 
 ---
 
-## 8. Supuestos y limitaciones
+## 8. Assumptions and limitations
 
-| Supuesto | Estado en este proyecto | Riesgo |
-|----------|------------------------|--------|
-| SUTVA (no interferencia) | Emails a clientes distintos | Bajo |
-| Asignación aleatoria | Verificado por diseño | Bajo |
-| Unidades i.i.d. | Muestra aleatoria simple | Bajo |
-| Medición correcta | Sin nulos, binarias consistentes | Bajo |
-| External validity | Solo 5k de 500k | Medio — validar en rollout |
-| CATE calibrado | Brecha ATE vs media CATE | Medio — ranking + `calibrate_cate_to_ate` |
-
----
-
-## 9. Próximos pasos técnicos sugeridos
-
-1. **Policy learning:** reglas de tratamiento óptimo (`PolicyTree`) por segmento.
-2. **Calibración avanzada:** Platt / isotónica sobre `predict_proba` de los modelos base.
-3. **Rollout secuencial:** validar external validity en una cohorte holdout de los 500k.
-4. Mantener narrativa en Markdown — [`04_DATA_STORYTELLING.md`](04_DATA_STORYTELLING.md).
+| Assumption | Status in this project | Risk |
+|------------|------------------------|------|
+| SUTVA (no interference) | Emails to distinct customers | Low |
+| Random assignment | Verified by design | Low |
+| i.i.d. units | Simple random sample | Low |
+| Correct measurement | No nulls, consistent binaries | Low |
+| External validity | Only 5k of 500k | Medium — validate in rollout |
+| Calibrated CATE | ATE vs mean-CATE gap | Medium — ranking + `calibrate_cate_to_ate` |
 
 ---
 
-## 10. Referencias rápidas
+## 9. Suggested technical next steps
 
-- **ATE / diff-in-means:** estimador principal en RCT; ver `src/analysis.py`.
-- **Regresión logística:** odds ratios ajustados; notebook 02.
+1. **Policy learning:** optimal treatment rules (`PolicyTree`) per segment.
+2. **Advanced calibration:** Platt / isotonic on the base models' `predict_proba`.
+3. **Sequential rollout:** validate external validity on a holdout cohort of the 500k.
+4. Keep the narrative in Markdown — [`04_DATA_STORYTELLING.md`](04_DATA_STORYTELLING.md).
+
+---
+
+## 10. Quick reference
+
+- **ATE / diff-in-means:** primary estimator in an RCT; see `src/analysis.py`.
+- **Logistic regression:** adjusted odds ratios; notebook 02.
 - **S/T/X-Learner, LinearDML, CausalForestDML:** `src/causal.py`, [`CAUSAL_ML.md`](CAUSAL_ML.md).
-- **Mediación funnel:** `src/mediation.py`.
-- **Tests:** `pytest tests/`.
-- **Marco potencial de resultados:** Imbens & Rubin (2015), *Causal Inference for Statistics, Social, and Biomedical Sciences*.
+- **Funnel mediation:** `src/mediation.py`.
+- **Uplift validation & CATE CIs:** `src/uplift.py`, notebook 05.
+- **Tests:** `pytest`.
+- **Potential outcomes framework:** Imbens & Rubin (2015), *Causal Inference for Statistics, Social, and Biomedical Sciences*.

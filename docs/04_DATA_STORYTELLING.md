@@ -1,97 +1,97 @@
-# 04 — Data storytelling para el cliente
+# 04 — Data storytelling for the client
 
-Narrativa ejecutiva del experimento de emails con nudges de ciencias del comportamiento.
+Executive narrative of the email experiment with behavioral-science nudges.
 
 ---
 
-## 1. El reto del banco
+## 1. The bank's challenge
 
-El banco envía emails a clientes con una llamada a la acción (ej. activar producto, completar un flujo). Sin nudges de comportamiento, la interacción es baja:
+The bank sends customers emails with a call to action (e.g. activate a product, complete a flow). Without behavioral nudges, engagement is low:
 
-| Variante | Open rate | Click rate |
-|----------|-----------|------------|
+| Variant | Open rate | Click rate |
+|---------|-----------|------------|
 | Control (`ctrl`) | 28.8% | 8.7% |
 
-**Pregunta de negocio:** ¿Puede un email con nudge de ciencias del comportamiento mover estas tasas sin cambiar el producto subyacente?
+**Business question:** Can an email with a behavioral-science nudge move these rates without changing the underlying product?
 
 ---
 
-## 2. Qué se probó
+## 2. What was tested
 
-Tres variantes del **mismo email base**, diferenciadas solo por el nudge incrustado:
+Three variants of the **same base email**, differing only by the embedded nudge:
 
-| Código | Rol | Qué representa |
-|--------|-----|----------------|
-| `ctrl` | **Control** | Email estándar, sin nudge — referencia causal |
-| `trat1` | **Tratamiento 1** | Email + nudge de comportamiento A |
-| `trat2` | **Tratamiento 2** | Email + nudge de comportamiento B |
+| Code | Role | What it represents |
+|------|------|--------------------|
+| `ctrl` | **Control** | Standard email, no nudge — causal reference |
+| `trat1` | **Treatment 1** | Email + behavioral nudge A |
+| `trat2` | **Treatment 2** | Email + behavioral nudge B |
 
-5.000 clientes asignados aleatoriamente (muestra de 500.000).
+5,000 customers randomly assigned (sample of 500,000).
 
 ---
 
-## 3. Resultado del experimento
+## 3. Experiment result
 
-| Variante | Open rate | Click rate |
-|----------|-----------|------------|
+| Variant | Open rate | Click rate |
+|---------|-----------|------------|
 | Control | 28.8% | 8.7% |
-| Tratamiento 1 | 60.8% | 35.3% |
-| Tratamiento 2 | 60.8% | **48.9%** |
+| Treatment 1 | 60.8% | 35.3% |
+| Treatment 2 | 60.8% | **48.9%** |
 
-**Lectura en una frase:** Los nudges **duplican la apertura**; el Tratamiento 2 además **multiplica por ~5** la tasa de clic respecto al control.
+**One-line takeaway:** the nudges **double the open rate**; Treatment 2 additionally **multiplies the click rate ~5×** versus control.
 
-### Dónde actúa el efecto (mediación del funnel)
+### Where the effect acts (funnel mediation)
 
-| Comparación | % del ATE vía apertura | % vía conversión post-apertura |
-|-------------|------------------------|--------------------------------|
+| Comparison | % of ATE via opening | % via post-open conversion |
+|------------|----------------------|----------------------------|
 | Trat1 vs control | 36% | 64% |
 | Trat2 vs control | 24% | **76%** |
 | Trat2 vs Trat1 | ~0% | **~100%** |
 
-Trat1 y Trat2 abren igual; la ventaja de Trat2 es **casi solo** más clics entre quienes ya abrieron.
+Trat1 and Trat2 open equally; Trat2's advantage is **almost entirely** more clicks among those who already opened.
 
 ---
 
-## 4. Impacto estimado al escalar
+## 4. Estimated impact at scale
 
-Si desplegamos **Tratamiento 2** a la población completa (500.000 clientes):
+If we deploy **Treatment 2** to the full population (500,000 customers):
 
-| Métrica | Valor |
-|---------|-------|
-| Lift absoluto en click rate | +40.2 pp |
-| Clics adicionales vs control | **~200.773** |
+| Metric | Value |
+|--------|-------|
+| Absolute lift in click rate | +40.2 pp |
+| Additional clicks vs control | **~200,773** |
 
-Cálculo: `(48.9% − 8.7%) × 500.000 ≈ 200.773`.
-
----
-
-## 5. Personalización (Causal ML)
-
-El análisis de efectos heterogéneos (notebook 03) muestra que no todos los clientes responden igual:
-
-| Segmento | CATE trat2 (ctor) | Acción |
-|----------|-------------------|--------|
-| Edad 18–35 | Alto (~0.67) | Priorizar trat2 |
-| Edad 36–50 | Moderado (~0.21) | Desplegar trat2 |
-| Edad 51+ | Cercano a 0 | Evaluar alternativa |
-| Usuarios app | Mayor que sin app | Priorizar en campañas digitales |
-
-Ver [`CAUSAL_ML.md`](CAUSAL_ML.md) para el marco técnico.
+Calculation: `(48.9% − 8.7%) × 500,000 ≈ 200,773`.
 
 ---
 
-## 6. Recomendación
+## 5. Personalization (Causal ML)
 
-| Acción | Impacto esperado |
-|--------|------------------|
-| Desplegar **Tratamiento 2** como variante principal | +40.2 pp en click rate vs control |
-| Priorizar segmentos con CATE alto (jóvenes, usuarios app) | Optimización adicional vía personalización |
-| Mantener A/B continuo post-lanzamiento | Detección temprana de fatiga del nudge |
+The heterogeneous-effects analysis (notebook 03) shows that not all customers respond equally:
+
+| Segment | CATE trat2 (ctor) | Action |
+|---------|-------------------|--------|
+| Age 18–35 | High (~0.67) | Prioritize trat2 |
+| Age 36–50 | Moderate (~0.21) | Deploy trat2 |
+| Age 51+ | Close to 0 | Evaluate an alternative |
+| App users | Higher than non-app | Prioritize in digital campaigns |
+
+The out-of-sample validation (notebook 05) confirms this ranking holds on held-out customers, and the formal confidence intervals show the 18–35 and 36–50 effects are statistically significant while the 51+ effect is not. See [`CAUSAL_ML.md`](CAUSAL_ML.md) for the technical framework.
 
 ---
 
-## 7. Siguiente paso
+## 6. Recommendation
 
-1. Rollout de trat2 a la base objetivo.
-2. Monitorizar open/click por cohorte.
-3. Re-estimar CATE trimestralmente para ajustar targeting.
+| Action | Expected impact |
+|--------|-----------------|
+| Deploy **Treatment 2** as the main variant | +40.2 pp in click rate vs control |
+| Prioritize high-CATE segments (younger customers, app users) | Additional gains via personalization |
+| Keep a continuous A/B post-launch | Early detection of nudge fatigue |
+
+---
+
+## 7. Next step
+
+1. Roll out trat2 to the target base.
+2. Monitor open/click by cohort.
+3. Re-estimate CATE quarterly to adjust targeting.
