@@ -195,6 +195,28 @@ def uplift_curve_points(
     )
 
 
+def _fit_causal_forest(
+    X: pd.DataFrame,
+    T: np.ndarray,
+    Y: np.ndarray,
+    *,
+    n_estimators: int,
+    dml_cv: int,
+    random_state: int,
+) -> CausalForestDML:
+    cf = CausalForestDML(
+        model_y=_rf(max(50, n_estimators // 2), random_state),
+        model_t=_rf(max(50, n_estimators // 2), random_state),
+        discrete_treatment=True,
+        discrete_outcome=True,
+        n_estimators=max(4, n_estimators // 4 * 4),
+        cv=dml_cv,
+        random_state=random_state,
+    )
+    cf.fit(Y, T, X=X.values)
+    return cf
+
+
 def cate_with_confidence(
     df: pd.DataFrame,
     treatment_arm: str,
@@ -214,16 +236,9 @@ def cate_with_confidence(
     features = features or DEFAULT_FEATURES
     X, T, Y = prep_binary_comparison(df, treatment_arm, outcome, features)
 
-    cf = CausalForestDML(
-        model_y=_rf(max(50, n_estimators // 2), random_state),
-        model_t=_rf(max(50, n_estimators // 2), random_state),
-        discrete_treatment=True,
-        discrete_outcome=True,
-        n_estimators=max(4, n_estimators // 4 * 4),
-        cv=dml_cv,
-        random_state=random_state,
+    cf = _fit_causal_forest(
+        X, T, Y, n_estimators=n_estimators, dml_cv=dml_cv, random_state=random_state
     )
-    cf.fit(Y, T, X=X.values)
     point = np.asarray(cf.effect(X.values)).reshape(-1)
     lower, upper = cf.effect_interval(X.values, alpha=alpha)
     lower = np.asarray(lower).reshape(-1)
@@ -235,6 +250,65 @@ def cate_with_confidence(
     frame["ci_upper"] = upper
     frame["significant"] = (lower > 0) | (upper < 0)
     return frame
+
+
+def segment_cate_ci(
+    df: pd.DataFrame,
+    treatment_arm: str,
+    segment_col: str,
+    outcome: str = "ctor",
+    *,
+    bins: list[float] | None = None,
+    labels: list[str] | None = None,
+    features: list[str] | None = None,
+    n_estimators: int = 200,
+    dml_cv: int = 3,
+    alpha: float = 0.05,
+    random_state: int = 42,
+) -> pd.DataFrame:
+    """Formal (1-alpha) CI for the *average* CATE within each segment.
+
+    Unlike averaging per-customer interval bounds, this uses the Causal Forest's
+    own inference (``effect_inference(...).population_summary()``) on each
+    subgroup, which correctly accounts for the covariance of the estimates.
+    Returns one row per segment with ``n``, ``mean_cate``, ``ci_lower``,
+    ``ci_upper`` and ``significant`` (the group interval excludes zero).
+    """
+    features = features or DEFAULT_FEATURES
+    sub = df[df["grupo"].isin(["ctrl", treatment_arm])].reset_index(drop=True)
+    X, T, Y = prep_binary_comparison(df, treatment_arm, outcome, features)
+    cf = _fit_causal_forest(
+        X, T, Y, n_estimators=n_estimators, dml_cv=dml_cv, random_state=random_state
+    )
+    x_vals = X.values
+
+    if bins is not None:
+        seg = pd.cut(sub[segment_col], bins=bins, labels=labels)
+        levels = list(seg.cat.categories)
+    else:
+        seg = sub[segment_col]
+        levels = list(pd.unique(seg.dropna()))
+
+    rows = []
+    for level in levels:
+        pos = np.where((seg == level).to_numpy())[0]
+        if len(pos) == 0:
+            continue
+        summary = cf.effect_inference(x_vals[pos]).population_summary(alpha=alpha)
+        lower, upper = summary.conf_int_mean()
+        lo = float(np.asarray(lower).ravel()[0])
+        hi = float(np.asarray(upper).ravel()[0])
+        rows.append(
+            {
+                "segment": level,
+                "n": int(len(pos)),
+                "mean_cate": float(np.asarray(summary.mean_point).ravel()[0]),
+                "ci_lower": lo,
+                "ci_upper": hi,
+                "significant": bool(lo > 0 or hi < 0),
+            }
+        )
+    return pd.DataFrame(rows)
 
 
 def summarize_cate_ci(cate_ci: pd.DataFrame) -> pd.Series:

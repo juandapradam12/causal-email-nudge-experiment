@@ -11,6 +11,7 @@ from src.uplift import (
     cate_with_confidence,
     evaluate_uplift,
     scored_frame,
+    segment_cate_ci,
     summarize_cate_ci,
     uplift_curve_points,
     uplift_scores,
@@ -124,3 +125,43 @@ def test_summarize_cate_ci(df: pd.DataFrame) -> None:
     assert summary["n"] == len(ci)
     assert summary["mean_ci_width"] > 0
     assert 0.0 <= summary["frac_significant"] <= 1.0
+
+
+def test_segment_cate_ci_binned(df: pd.DataFrame) -> None:
+    seg = segment_cate_ci(
+        df,
+        "trat2",
+        "edad",
+        outcome="ctor",
+        bins=[17, 35, 50, 100, 200],
+        labels=["18-35", "36-50", "51+", "100+"],
+        n_estimators=20,
+        dml_cv=2,
+        random_state=0,
+    )
+    # the (100, 200] bin is intentionally empty (max age is 99) and must be skipped
+    assert list(seg["segment"]) == ["18-35", "36-50", "51+"]
+    assert {"n", "mean_cate", "ci_lower", "ci_upper", "significant"}.issubset(
+        seg.columns
+    )
+    # formal group CI must bracket the group mean
+    assert (seg["ci_lower"] <= seg["mean_cate"]).all()
+    assert (seg["mean_cate"] <= seg["ci_upper"]).all()
+    assert seg["n"].sum() == len(df[df["grupo"].isin(["ctrl", "trat2"])])
+    expected_sig = (seg["ci_lower"] > 0) | (seg["ci_upper"] < 0)
+    assert (seg["significant"] == expected_sig).all()
+
+
+def test_segment_cate_ci_categorical(df: pd.DataFrame) -> None:
+    seg = segment_cate_ci(
+        df,
+        "trat2",
+        "uso_app",
+        outcome="ctor",
+        n_estimators=20,
+        dml_cv=2,
+        random_state=0,
+    )
+    assert set(seg["segment"]) == {0, 1}
+    assert (seg["ci_lower"] <= seg["mean_cate"]).all()
+    assert (seg["mean_cate"] <= seg["ci_upper"]).all()

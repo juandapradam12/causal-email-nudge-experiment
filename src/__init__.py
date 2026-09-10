@@ -9,7 +9,12 @@ from src.causal import (
 )
 from src.data import GROUP_LABELS, load_data
 from src.mediation import all_funnel_mediations, funnel_mediation
-from src.uplift import cate_with_confidence, evaluate_uplift, summarize_cate_ci
+from src.uplift import (
+    cate_with_confidence,
+    evaluate_uplift,
+    segment_cate_ci,
+    summarize_cate_ci,
+)
 
 __all__ = [
     "GROUP_LABELS",
@@ -25,5 +30,6 @@ __all__ = [
     "all_funnel_mediations",
     "evaluate_uplift",
     "cate_with_confidence",
+    "segment_cate_ci",
     "summarize_cate_ci",
 ]
