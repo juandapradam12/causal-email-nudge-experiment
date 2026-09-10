@@ -435,3 +435,9 @@ causal-email-nudge-experiment/
 - **Uplift validation & conditional average treatment effect (CATE) CIs:** `src/uplift.py`, notebook 05.
 - **Tests:** `pytest`.
 - **Potential outcomes framework:** Imbens & Rubin (2015), *Causal Inference for Statistics, Social, and Biomedical Sciences*.
+
+---
+
+### Next
+
+→ [Causal ML in the email experiment](CAUSAL_ML.md)

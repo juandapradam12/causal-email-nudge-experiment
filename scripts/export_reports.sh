@@ -25,7 +25,8 @@ for nb in notebooks/*.ipynb; do
 done
 
 # Chain the reports with a sequential "Next" navigation footer so readers can
-# move through them in order (01 → 02 → ... → 05 → project README).
+# move through them in order (01 → 02 → ... → 05). The reading path starts at
+# the project README and the conceptual docs; the last report ends the chain.
 python - "$OUT_DIR" <<'PY'
 import sys
 from pathlib import Path
@@ -41,15 +42,13 @@ def title(md: Path) -> str:
     return md.stem
 
 
-for i, md in enumerate(reports):
-    nxt = reports[i + 1] if i + 1 < len(reports) else None
-    if nxt is not None:
-        link = f"[{title(nxt)}]({nxt.name})"
-    else:
-        link = "[Project overview (README)](../../README.md)"
-    body = md.read_text(encoding="utf-8").rstrip() + f"\n\n---\n\n### Next\n\n→ {link}\n"
-    md.write_text(body, encoding="utf-8")
-print(f"Added Next navigation to {len(reports)} reports")
+added = 0
+for i, md in enumerate(reports[:-1]):  # last report ends the chain (no Next)
+    nxt = reports[i + 1]
+    footer = f"\n\n---\n\n### Next\n\n→ [{title(nxt)}]({nxt.name})\n"
+    md.write_text(md.read_text(encoding="utf-8").rstrip() + footer, encoding="utf-8")
+    added += 1
+print(f"Added Next navigation to {added} reports")
 PY
 
 echo "Reports written to ${OUT_DIR}/ (Markdown + figure images)"

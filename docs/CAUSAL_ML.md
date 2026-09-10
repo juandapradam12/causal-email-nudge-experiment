@@ -340,3 +340,9 @@ interval includes 0 — the effect is not distinguishable from noise there.
 - Radcliffe (2007). Using control groups to target on predicted lift: building and assessing uplift models.
 - [EconML documentation](https://econml.azurewebsites.net/) — meta-learners and double machine learning (DML).
 - Künzel et al. (2019). Metalearners for estimating heterogeneous treatment effects using machine learning.
+
+---
+
+### Next
+
+→ [01 — Data loading & EDA](reports/01_load_and_eda.md)
