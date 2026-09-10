@@ -143,6 +143,4 @@ recommendation
 
 ---
 
-### Next
-
-→ [05 — Out-of-sample uplift validation & CATE uncertainty](05_uplift_validation.md)
+← Previous: [03 — Causal ML: heterogeneous effects (CATE)](03_causal_ml_heterogeneity.md)  ·  Next: [05 — Out-of-sample uplift validation & CATE uncertainty](05_uplift_validation.md) →

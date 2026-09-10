@@ -102,6 +102,4 @@ Personal learning project. The dataset comes from a data-analysis technical assi
 
 ---
 
-### Next
-
-→ [Conceptual and technical guide](docs/GUIA_CONCEPTUAL_TECNICA.md)
+Next: [Conceptual and technical guide](docs/GUIA_CONCEPTUAL_TECNICA.md) →

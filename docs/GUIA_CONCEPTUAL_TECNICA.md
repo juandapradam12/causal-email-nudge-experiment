@@ -438,6 +438,4 @@ causal-email-nudge-experiment/
 
 ---
 
-### Next
-
-→ [Causal ML in the email experiment](CAUSAL_ML.md)
+← Previous: [Project overview (README)](../README.md)  ·  Next: [Causal ML in the email experiment](CAUSAL_ML.md) →

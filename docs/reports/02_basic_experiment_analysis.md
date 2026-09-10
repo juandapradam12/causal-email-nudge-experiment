@@ -247,6 +247,4 @@ print(model_ctor.summary2().tables[1].loc[
 
 ---
 
-### Next
-
-→ [03 — Causal ML: heterogeneous effects (CATE)](03_causal_ml_heterogeneity.md)
+← Previous: [01 — Data loading & EDA](01_load_and_eda.md)  ·  Next: [03 — Causal ML: heterogeneous effects (CATE)](03_causal_ml_heterogeneity.md) →

@@ -24,15 +24,17 @@ for nb in notebooks/*.ipynb; do
     --ExecutePreprocessor.timeout=1800
 done
 
-# Chain the reports with a sequential "Next" navigation footer so readers can
-# move through them in order (01 → 02 → ... → 05). The reading path starts at
-# the project README and the conceptual docs; the last report ends the chain.
+# Chain the reports with sequential Previous/Next navigation footers so readers
+# can move through them in order. The reading path starts at the project README
+# and the conceptual docs (report 01's Previous links back to CAUSAL_ML.md); the
+# last report ends the chain (no Next).
 python - "$OUT_DIR" <<'PY'
 import sys
 from pathlib import Path
 
 out = Path(sys.argv[1])
 reports = sorted(out.glob("[0-9][0-9]_*.md"))
+causal_ml = out.parent / "CAUSAL_ML.md"  # the doc preceding report 01
 
 
 def title(md: Path) -> str:
@@ -42,13 +44,19 @@ def title(md: Path) -> str:
     return md.stem
 
 
-added = 0
-for i, md in enumerate(reports[:-1]):  # last report ends the chain (no Next)
-    nxt = reports[i + 1]
-    footer = f"\n\n---\n\n### Next\n\n→ [{title(nxt)}]({nxt.name})\n"
+for i, md in enumerate(reports):
+    parts = []
+    if i == 0:
+        parts.append(f"← Previous: [{title(causal_ml)}](../{causal_ml.name})")
+    else:
+        prev = reports[i - 1]
+        parts.append(f"← Previous: [{title(prev)}]({prev.name})")
+    if i + 1 < len(reports):
+        nxt = reports[i + 1]
+        parts.append(f"Next: [{title(nxt)}]({nxt.name}) →")
+    footer = "\n\n---\n\n" + "  ·  ".join(parts) + "\n"
     md.write_text(md.read_text(encoding="utf-8").rstrip() + footer, encoding="utf-8")
-    added += 1
-print(f"Added Next navigation to {added} reports")
+print(f"Added Previous/Next navigation to {len(reports)} reports")
 PY
 
 echo "Reports written to ${OUT_DIR}/ (Markdown + figure images)"

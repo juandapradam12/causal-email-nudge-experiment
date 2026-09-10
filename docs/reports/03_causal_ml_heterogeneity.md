@@ -412,6 +412,4 @@ validate_cate_vs_ate(df, 'trat2', 'ctor', cate_trat2).round(4)
 
 ---
 
-### Next
-
-→ [04 — Data storytelling for the client](04_data_storytelling.md)
+← Previous: [02 — Classic experiment analysis (ATE)](02_basic_experiment_analysis.md)  ·  Next: [04 — Data storytelling for the client](04_data_storytelling.md) →

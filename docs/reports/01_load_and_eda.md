@@ -426,6 +426,4 @@ balance_df
 
 ---
 
-### Next
-
-→ [02 — Classic experiment analysis (ATE)](02_basic_experiment_analysis.md)
+← Previous: [Causal ML in the email experiment](../CAUSAL_ML.md)  ·  Next: [02 — Classic experiment analysis (ATE)](02_basic_experiment_analysis.md) →

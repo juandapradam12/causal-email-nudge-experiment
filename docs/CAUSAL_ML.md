@@ -343,6 +343,4 @@ interval includes 0 — the effect is not distinguishable from noise there.
 
 ---
 
-### Next
-
-→ [01 — Data loading & EDA](reports/01_load_and_eda.md)
+← Previous: [Conceptual and technical guide](GUIA_CONCEPTUAL_TECNICA.md)  ·  Next: [01 — Data loading & EDA](reports/01_load_and_eda.md) →
