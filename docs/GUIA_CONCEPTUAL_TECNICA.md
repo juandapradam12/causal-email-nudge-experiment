@@ -13,9 +13,9 @@ A bank wants to **increase engagement** with transactional or marketing emails. 
 | Level | Question | Method |
 |-------|----------|--------|
 | Descriptive | How are customers and outcomes distributed? | EDA (`01_load_and_eda.ipynb`) |
-| Global inference | Do the nudges work on average? | ATE, tests, regression (`02_basic_experiment_analysis.ipynb`) |
-| Local inference | For **whom** does each nudge work best? | CATE with meta-learners (`03_causal_ml_heterogeneity.ipynb`) |
-| Validation | Does the targeting hold out-of-sample? | Qini/AUUC + CATE CIs (`05_uplift_validation.ipynb`) |
+| Global inference | Do the nudges work on average? | average treatment effect (ATE), tests, regression (`02_basic_experiment_analysis.ipynb`) |
+| Local inference | For **whom** does each nudge work best? | conditional average treatment effect (CATE) with meta-learners (`03_causal_ml_heterogeneity.ipynb`) |
+| Validation | Does the targeting hold out-of-sample? | Qini/AUUC (area under the uplift curve) + CATE CIs (`05_uplift_validation.ipynb`) |
 | Decision | What to deploy and at what scale? | Storytelling + impact (`04_data_storytelling.ipynb`) |
 
 ### Experimental design: randomized controlled trial (RCT)
@@ -61,7 +61,7 @@ $$
 
 **Analogy:** in a clinical trial, "placebo" is not "no medicine"; it is the reference treatment. Here `ctrl` is the reference email; `trat1` and `trat2` are the nudge variants.
 
-For depth on CATE, meta-learners and DML, see [`CAUSAL_ML.md`](CAUSAL_ML.md).
+For depth on conditional average treatment effect (CATE), meta-learners and double machine learning (DML), see [`CAUSAL_ML.md`](CAUSAL_ML.md).
 
 ---
 
@@ -85,7 +85,7 @@ $$
 
 - **Open rate:** $\bar{or} = P(\text{open})$
 - **Click rate (`ctor`):** $P(\text{open} \cap \text{click})$ — overall click-conversion rate.
-- **Click-to-open (conditional CTOR):** $P(\text{click} \mid \text{open}) = \bar{ctor} / \bar{or}$ when $or > 0$.
+- **Click-to-open (conditional CTOR (click-to-open rate)):** $P(\text{click} \mid \text{open}) = \bar{ctor} / \bar{or}$ when $or > 0$.
 
 The nudge can act at **two funnel stages**:
 
@@ -111,10 +111,10 @@ $$
 To compare `trat2` vs `ctrl` on click rate:
 
 $$
-ATE = \mathbb{E}[Y(\text{trat2}) - Y(\text{ctrl})]
+average treatment effect (ATE) = \mathbb{E}[Y(\text{trat2}) - Y(\text{ctrl})]
 $$
 
-In an RCT with a binary outcome, the natural estimator is the **difference in proportions**:
+In a randomized controlled trial (RCT) with a binary outcome, the natural estimator is the **difference in proportions**:
 
 $$
 \widehat{ATE} = \bar{Y}_{\text{trat2}} - \bar{Y}_{\text{ctrl}}
@@ -146,7 +146,7 @@ $$
 
 It answers: *how much extra benefit does a customer with profile $x$ get from receiving the treatment?*
 
-This enables **personalization**: send `trat2` first to segments with a high CATE.
+This enables **personalization**: send `trat2` first to segments with a high conditional average treatment effect (CATE).
 
 ---
 
@@ -208,7 +208,7 @@ Implemented checks:
 | trat1 | 60.8%     | 35.3%      |
 | trat2 | 60.8%     | 48.9%      |
 
-**Note on balance:** Some covariates (`edad`, `inve`, `sexo`) show low p-values in univariate tests. This is **expected with 5,000 observations** — balance tests detect tiny differences. What matters is that the magnitudes are small and that the ATE does not depend on adjustments (verified in phase 4).
+**Note on balance:** Some covariates (`edad`, `inve`, `sexo`) show low p-values in univariate tests. This is **expected with 5,000 observations** — balance tests detect tiny differences. What matters is that the magnitudes are small and that the average treatment effect (ATE) does not depend on adjustments (verified in phase 4).
 
 ### Phase 4: Classic analysis (`02_basic_experiment_analysis.ipynb` + `src/analysis.py`)
 
@@ -247,20 +247,20 @@ $$
 | ctor | trat1 | 2.49 | 2.5× odds of clicking vs control |
 | ctor | trat2 | 2.00 | 2× odds of clicking vs control |
 
-\*The `trat2` ORs on open rate are lower than `trat1` **after adjusting for covariates**, while the raw ATE is almost identical. This indicates **residual covariate confounding** (slight imbalance) — another reason to trust the RCT's nonparametric estimator as the primary source.
+\*The `trat2` ORs on open rate are lower than `trat1` **after adjusting for covariates**, while the raw average treatment effect (ATE) is almost identical. This indicates **residual covariate confounding** (slight imbalance) — another reason to trust the randomized controlled trial (RCT)'s nonparametric estimator as the primary source.
 
 ### Phase 5: Causal ML (`03_causal_ml_heterogeneity.ipynb` + `src/causal.py`)
 
 #### Why meta-learners?
 
-In an RCT the ATE is easy to estimate. But the business wants **actionable segments**. Meta-learners decompose the problem into supervised outcome models:
+In a randomized controlled trial (RCT) the average treatment effect (ATE) is easy to estimate. But the business wants **actionable segments**. Meta-learners decompose the problem into supervised outcome models:
 
 | Learner | Idea | Effect formula |
 |---------|------|----------------|
 | **S-Learner** | One model with $T$ as a feature | $\hat\tau(x) = \hat\mu(x,1) - \hat\mu(x,0)$ |
 | **T-Learner** | Separate model per arm | $\hat\tau(x) = \hat\mu_1(x) - \hat\mu_0(x)$ |
 | **X-Learner** | Uses propensity + cross-imputation | Better when an arm is smaller or heterogeneity is strong |
-| **LinearDML** | Cross-fitting + orthogonal regression | Robust to poorly estimated nuisances; see `CAUSAL_ML.md` |
+| **LinearDML (linear double machine learning)** | Cross-fitting + orthogonal regression | Robust to poorly estimated nuisances; see `CAUSAL_ML.md` |
 
 Implementation:
 
@@ -274,14 +274,14 @@ validation = validate_cate_vs_ate(df, "trat2", "ctor", est)
 
 #### CATE results (X-Learner, outcome `ctor`)
 
-| Comparison | Manual ATE | Mean CATE | CATE Std |
+| Comparison | Manual average treatment effect (ATE) | Mean conditional average treatment effect (CATE) | CATE Std |
 |------------|------------|-----------|----------|
 | trat1 vs ctrl | 0.265 | 0.171 | 0.41 |
 | trat2 vs ctrl | 0.402 | 0.204 | 0.46 |
 
 #### Detected heterogeneity (trat2 vs ctrl)
 
-| Segment | Mean CATE | Interpretation |
+| Segment | Mean conditional average treatment effect (CATE) | Interpretation |
 |---------|-----------|----------------|
 | Age 18–35 | **0.67** | Younger: very high response to nudge 2 |
 | Age 36–50 | 0.21 | Moderate response |
@@ -291,7 +291,7 @@ validation = validate_cate_vs_ate(df, "trat2", "ctor", est)
 
 #### ⚠️ Important validation: CATE calibration
 
-The **mean CATE should approximate the ATE** (both estimate the same estimand under causal identification). In this project there is a **systematic gap** (~10–20 pp):
+The **mean conditional average treatment effect (CATE) should approximate the average treatment effect (ATE)** (both estimate the same estimand under causal identification). In this project there is a **systematic gap** (~10–20 pp):
 
 - Manual ATE trat2: **0.40**
 - Mean X-Learner CATE: **0.20**
@@ -300,7 +300,7 @@ The **mean CATE should approximate the ATE** (both estimate the same estimand un
 
 1. **Binary outcome + Random Forest:** the meta-learners use regression/classification models that can be poorly calibrated in the tails.
 2. **High individual variance:** std(CATE) ≈ 0.46; many negative CATEs offset the extreme positive ones.
-3. **Poorly converged propensity:** in an RCT the propensity is ~0.5, but the logistic model may not converge well with many dummies (warning in the notebook).
+3. **Poorly converged propensity:** in a randomized controlled trial (RCT) the propensity is ~0.5, but the logistic model may not converge well with many dummies (warning in the notebook).
 
 **Practical implication:**
 
@@ -322,9 +322,9 @@ Because `ctor` is nested within `or`:
 
 ### Phase 5b: Uplift validation (`05_uplift_validation.ipynb` + `src/uplift.py`)
 
-Estimating the CATE is not enough — we must show the model **ranks** customers well and quantify **uncertainty**:
+Estimating the conditional average treatment effect (CATE) is not enough — we must show the model **ranks** customers well and quantify **uncertainty**:
 
-- **Out-of-sample ranking:** train/test split (stratified by treatment), fit on train, score the held-out test set, and measure **Qini** and **AUUC** (`causalml.metrics`). A clearly positive Qini beats random targeting and shows the targeting is not overfitting; the Causal Forest typically leads.
+- **Out-of-sample ranking:** train/test split (stratified by treatment), fit on train, score the held-out test set, and measure **Qini** and **AUUC (area under the uplift curve)** (`causalml.metrics`). A clearly positive Qini beats random targeting and shows the targeting is not overfitting; the Causal Forest typically leads.
 - **Confidence intervals:** per-customer CIs from `CausalForestDML`, and a formal **group-average CI per segment** via `effect_inference(...).population_summary()`. The 18–35 and 36–50 segments are significant; the 51+ interval includes 0.
 
 ```python
@@ -422,16 +422,16 @@ causal-email-nudge-experiment/
 | i.i.d. units | Simple random sample | Low |
 | Correct measurement | No nulls, consistent binaries | Low |
 | External validity | Only 5k of 500k | Medium — validate in rollout |
-| Calibrated CATE | ATE vs mean-CATE gap | Medium — ranking + `calibrate_cate_to_ate` |
+| Calibrated conditional average treatment effect (CATE) | average treatment effect (ATE) vs mean-CATE gap | Medium — ranking + `calibrate_cate_to_ate` |
 
 ---
 
 ## 9. Quick reference
 
-- **ATE / diff-in-means:** primary estimator in an RCT; see `src/analysis.py`.
+- **average treatment effect (ATE) / diff-in-means:** primary estimator in a randomized controlled trial (RCT); see `src/analysis.py`.
 - **Logistic regression:** adjusted odds ratios; notebook 02.
-- **S/T/X-Learner, LinearDML, CausalForestDML:** `src/causal.py`, [`CAUSAL_ML.md`](CAUSAL_ML.md).
+- **S/T/X-Learner, LinearDML (linear double machine learning), CausalForestDML (causal forest with double machine learning):** `src/causal.py`, [`CAUSAL_ML.md`](CAUSAL_ML.md).
 - **Funnel mediation:** `src/mediation.py`.
-- **Uplift validation & CATE CIs:** `src/uplift.py`, notebook 05.
+- **Uplift validation & conditional average treatment effect (CATE) CIs:** `src/uplift.py`, notebook 05.
 - **Tests:** `pytest`.
 - **Potential outcomes framework:** Imbens & Rubin (2015), *Causal Inference for Statistics, Social, and Biomedical Sciences*.

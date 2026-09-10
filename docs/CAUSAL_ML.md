@@ -10,7 +10,7 @@ Reference guide for the causal framework and the **Causal Machine Learning** tec
 |----------|----------|-------------------------|
 | **Predictive** | Who will click? | A `ctor` classifier with no counterfactual |
 | **Causal** | Did the nudge *cause* more clicks than control? | Average treatment effect (ATE) in a randomized controlled trial (RCT) |
-| **Causal ML** | For *which profile* does the nudge cause more clicks? | CATE + personalization |
+| **Causal ML** | For *which profile* does the nudge cause more clicks? | conditional average treatment effect (CATE) + personalization |
 
 A predictive model may associate "younger age" with more clicks because younger customers already clicked more **without** the nudge. The CATE tries to estimate the **increment attributable to the treatment** conditional on the profile $X$.
 
@@ -69,9 +69,9 @@ RCT (random group)
    Policy: send trat2 if CATE(x) > threshold
 ```
 
-**ATE** feeds global decisions (deploy `trat2` to everyone).
+**average treatment effect (ATE)** feeds global decisions (deploy `trat2` to everyone).
 
-**CATE** feeds **prioritization** and **personalization** (who receives the stronger nudge first).
+**conditional average treatment effect (CATE)** feeds **prioritization** and **personalization** (who receives the stronger nudge first).
 
 **Important:** in this dataset the mean CATE **does not match** the ATE (~0.20 vs ~0.40 for `trat2` vs `ctrl` / `ctor`). Use CATE to **rank segments** (ranking), and ATE for **business impact magnitudes**.
 
@@ -92,7 +92,7 @@ $$
 - **Advantage:** simple, a single model.
 - **Risk:** if the treatment effect is small, the model may "ignore" $T$ and underestimate $\tau(x)$.
 
-In this project: mean S-Learner CATE ≈ **0.21** (trat2 vs ctrl, `ctor`).
+In this project: mean S-Learner conditional average treatment effect (CATE) ≈ **0.21** (trat2 vs ctrl, `ctor`).
 
 ### 4.2 T-Learner (Two models)
 
@@ -105,21 +105,21 @@ $$
 - **Advantage:** per-arm flexibility; good with strong heterogeneity.
 - **Risk:** error accumulates if an arm has few observations in some segment.
 
-Mean T-Learner CATE ≈ **0.21**.
+Mean T-Learner conditional average treatment effect (CATE) ≈ **0.21**.
 
 ### 4.3 X-Learner
 
 Combines the T-Learner with a **propensity model** $\hat e(x) = P(T=1 \mid X)$ and cross-imputation of individual effects. It usually works better when one arm is smaller or heterogeneity is marked.
 
-In an RCT, $\hat e(x) \approx 0.5$ constant; the X-Learner can still help in the effect-regression stage.
+In a randomized controlled trial (RCT), $\hat e(x) \approx 0.5$ constant; the X-Learner can still help in the effect-regression stage.
 
-Mean X-Learner CATE ≈ **0.20** (used by default for segmentation in notebook 03).
+Mean X-Learner conditional average treatment effect (CATE) ≈ **0.20** (used by default for segmentation in notebook 03).
 
 ### 4.4 When to use each
 
 | Situation | Recommended learner |
 |-----------|---------------------|
-| Balanced RCT, initial exploration | T-Learner or S-Learner |
+| Balanced randomized controlled trial (RCT), initial exploration | T-Learner or S-Learner |
 | Small or imbalanced treatment arm | X-Learner |
 | Many covariates, suspected residual confounding | DML (see §5) |
 | Segment ranking only | Any; validate with `validate_cate_vs_ate` |
@@ -128,7 +128,7 @@ Mean X-Learner CATE ≈ **0.20** (used by default for segmentation in notebook 0
 
 ## 5. Double Machine Learning (LinearDML)
 
-Meta-learners estimate effects **directly** from outcome models. **DML** (Chernozhukov et al.) separates:
+Meta-learners estimate effects **directly** from outcome models. **double machine learning (DML)** (Chernozhukov et al.) separates:
 
 1. **Nuisance functions:** $\hat\mu(x)$ (outcome) and $\hat e(x)$ (propensity), with **cross-fitting** to avoid overfitting.
 2. **Final stage:** regression of the "residual outcome" on the "residual treatment" → a **Neyman-orthogonal** estimator (more robust to nuisance errors).
@@ -149,23 +149,23 @@ dml.fit(Y, T, X=x)
 cate = dml.effect(x)
 ```
 
-**Result in this project (trat2 vs ctrl, `ctor`):** mean LinearDML ≈ **0.16** — closer to the meta-learners than to the ATE, but with different variance across segments.
+**Result in this project (trat2 vs ctrl, `ctor`):** mean LinearDML (linear double machine learning) ≈ **0.16** — closer to the meta-learners than to the average treatment effect (ATE), but with different variance across segments.
 
-**DML's advantage:** solid theory under confounding (observational); in an RCT it mainly contributes **cross-fitting** and an alternative **calibration**.
+**DML's advantage:** solid theory under confounding (observational); in a randomized controlled trial (RCT) it mainly contributes **cross-fitting** and an alternative **calibration**.
 
 ---
 
 ## 6. DR-Learner: why we don't use it here
 
-EconML's `DRLearner` (doubly robust) is powerful on observational data. In tests with this dataset and `discrete_treatment=True` without fine tuning, the CATE means came out around ~107–120 (absurd vs an ATE of 0.40).
+EconML's `DRLearner` (doubly robust) is powerful on observational data. In tests with this dataset and `discrete_treatment=True` without fine tuning, the conditional average treatment effect (CATE) means came out around ~107–120 (absurd vs an average treatment effect (ATE) of 0.40).
 
 **Typical causes:**
 
 - Binary **outcome and treatment** require coherent models and link functions.
 - DR combines propensity and outcome; with an RF that is not calibrated in the tails, the pseudo-outcomes can blow up.
-- In an **RCT**, the ATE is already identified without DR; the marginal benefit does not justify the misspecification risk.
+- In an **randomized controlled trial (RCT)**, the ATE is already identified without DR; the marginal benefit does not justify the misspecification risk.
 
-**Conclusion:** we document DR conceptually; for production in this repo we prefer T/X-Learner + validation, or LinearDML with cross-fitting.
+**Conclusion:** we document DR conceptually; for production in this repo we prefer T/X-Learner + validation, or LinearDML (linear double machine learning) with cross-fitting.
 
 ---
 
@@ -174,7 +174,7 @@ EconML's `DRLearner` (doubly robust) is powerful on observational data. In tests
 Under correct identification and a well-specified model:
 
 $$
-\frac{1}{n}\sum_i \hat\tau(x_i) \approx \widehat{ATE}
+\frac{1}{n}\sum_i \hat\tau(x_i) \approx \widehat{average treatment effect (ATE)}
 $$
 
 The `validate_cate_vs_ate` function in `src/causal.py` compares:
@@ -185,12 +185,12 @@ The `validate_cate_vs_ate` function in `src/causal.py` compares:
 | Mean S-Learner | ~0.21 |
 | Mean T-Learner | ~0.21 |
 | Mean X-Learner | ~0.20 |
-| Mean LinearDML | ~0.16 |
+| Mean LinearDML (linear double machine learning) | ~0.16 |
 
 **Honest interpretation (a sign of causal maturity):**
 
 1. Do **not** scale "+0.20 pp per customer" to 500k if the ATE says +40 pp.
-2. **Do** use CATE for: age 18–35 CATE ≈ 0.67 vs 51+ ≈ 0 — a reliable relative ordering.
+2. **Do** use conditional average treatment effect (CATE) for: age 18–35 CATE ≈ 0.67 vs 51+ ≈ 0 — a reliable relative ordering.
 3. **Implemented improvements:** `CausalForestDML`, `calibrate_cate_to_ate` (shift/scale), funnel mediation in `src/mediation.py`, and out-of-sample uplift validation in `src/uplift.py` (see §11).
 
 ---
@@ -212,7 +212,7 @@ $$
 + \underbrace{\text{OR}_{\text{trat}}\cdot\Delta\text{CTO}}_{\text{via conversion}}
 $$
 
-| Comparison | ATE ctor | Via opening | Via conversion | Conversion share |
+| Comparison | average treatment effect (ATE) ctor | Via opening | Via conversion | Conversion share |
 |------------|----------|-------------|----------------|------------------|
 | trat1 vs ctrl | +26.5 pp | +9.7 pp | +16.9 pp | **64%** |
 | trat2 vs ctrl | +40.2 pp | +9.7 pp | +30.5 pp | **76%** |
@@ -233,13 +233,13 @@ all_funnel_mediations(df)
 
 ### CausalForestDML
 
-A causal forest with DML residualization + honest trees for $\tau(x)$. In this dataset (trat2 vs ctrl, `ctor`): mean ≈ **0.19** — same order of magnitude as the meta-learners; it does not close the gap vs the ATE of 0.40 on its own.
+A causal forest with double machine learning (DML) residualization + honest trees for $\tau(x)$. In this dataset (trat2 vs ctrl, `ctor`): mean ≈ **0.19** — same order of magnitude as the meta-learners; it does not close the gap vs the average treatment effect (ATE) of 0.40 on its own.
 
 Enabled by default in `fit_cate(..., include_causal_forest=True)`.
 
 ### Calibration to the ATE
 
-To report magnitudes aligned with the RCT without losing the segment **ranking**:
+To report magnitudes aligned with the randomized controlled trial (RCT) without losing the segment **ranking**:
 
 ```python
 from src.causal import calibrate_cate_to_ate
@@ -248,7 +248,7 @@ from src.causal import calibrate_cate_to_ate
 cate_cal = calibrate_cate_to_ate(est.cate_x, ate=0.4015, method="shift")
 ```
 
-Use the raw CATE for **who to prioritize**; calibrated CATE only if you need to communicate per-segment magnitudes aligned with the global ATE.
+Use the raw conditional average treatment effect (CATE) for **who to prioritize**; calibrated CATE only if you need to communicate per-segment magnitudes aligned with the global average treatment effect (ATE).
 
 ---
 
@@ -280,7 +280,7 @@ segment_cate_summary(
 )
 ```
 
-Tests: `pytest` — ATE, funnel mediation, calibration, and CATE validation.
+Tests: `pytest` — average treatment effect (ATE), funnel mediation, calibration, and conditional average treatment effect (CATE) validation.
 
 Notebook: [`notebooks/03_causal_ml_heterogeneity.ipynb`](../notebooks/03_causal_ml_heterogeneity.ipynb).
 
@@ -288,7 +288,7 @@ Notebook: [`notebooks/03_causal_ml_heterogeneity.ipynb`](../notebooks/03_causal_
 
 ## 11. Out-of-sample validation (uplift) and uncertainty
 
-Estimating the CATE is not enough: we must show that the model **ranks** customers by
+Estimating the conditional average treatment effect (CATE) is not enough: we must show that the model **ranks** customers by
 response and bound the **uncertainty**. This lives in [`src/uplift.py`](../src/uplift.py) and in
 the notebook [`05_uplift_validation.ipynb`](../notebooks/05_uplift_validation.ipynb).
 
@@ -338,5 +338,5 @@ interval includes 0 — the effect is not distinguishable from noise there.
 - Athey, Tibshirani & Wager (2019). Generalized random forests.
 - Kitagawa (1955) / Blinder–Oaxaca — mean-difference decompositions.
 - Radcliffe (2007). Using control groups to target on predicted lift: building and assessing uplift models.
-- [EconML documentation](https://econml.azurewebsites.net/) — meta-learners and DML.
+- [EconML documentation](https://econml.azurewebsites.net/) — meta-learners and double machine learning (DML).
 - Künzel et al. (2019). Metalearners for estimating heterogeneous treatment effects using machine learning.

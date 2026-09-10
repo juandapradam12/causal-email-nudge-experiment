@@ -22,7 +22,7 @@ Design: randomized controlled trial (RCT) with 5,000 customers sampled from 500,
 Reference documentation in [`docs/`](docs/):
 
 - [`GUIA_CONCEPTUAL_TECNICA.md`](docs/GUIA_CONCEPTUAL_TECNICA.md) — causal framework, `ctrl` vs `trat`, results and interpretation
-- [`CAUSAL_ML.md`](docs/CAUSAL_ML.md) — identification, meta-learners, DML, CausalForest, mediation, validation
+- [`CAUSAL_ML.md`](docs/CAUSAL_ML.md) — identification, meta-learners, double machine learning (DML), CausalForest, mediation, validation
 - [`04_DATA_STORYTELLING.md`](docs/04_DATA_STORYTELLING.md) — executive narrative for the client
 - [`EXPERIMENT_DESIGN.md`](docs/EXPERIMENT_DESIGN.md) — experiment design brief
 - [`VARIABLES.md`](docs/VARIABLES.md) — variable dictionary
@@ -48,8 +48,8 @@ Reference documentation in [`docs/`](docs/):
 | Notebook | Contents |
 |----------|----------|
 | `01_load_and_eda.ipynb` | Loading, validation, EDA, randomization balance |
-| `02_basic_experiment_analysis.ipynb` | ATE, tests, regression, visualizations |
-| `03_causal_ml_heterogeneity.ipynb` | CATE (S/T/X, LinearDML, CausalForest), funnel mediation |
+| `02_basic_experiment_analysis.ipynb` | average treatment effect (ATE), tests, regression, visualizations |
+| `03_causal_ml_heterogeneity.ipynb` | CATE (S/T/X, LinearDML (linear double machine learning), CausalForest), funnel mediation |
 | `04_data_storytelling.ipynb` | Client narrative → see [`docs/04_DATA_STORYTELLING.md`](docs/04_DATA_STORYTELLING.md) |
 | `05_uplift_validation.ipynb` | Out-of-sample uplift (Qini/AUUC) and CATE confidence intervals |
 

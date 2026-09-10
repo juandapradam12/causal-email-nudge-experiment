@@ -42,7 +42,7 @@ Three variants of the **same base email**, differing only by the embedded nudge:
 
 ### Where the effect acts (funnel mediation)
 
-| Comparison | % of ATE via opening | % via post-open conversion |
+| Comparison | % of average treatment effect (ATE) via opening | % via post-open conversion |
 |------------|----------------------|----------------------------|
 | Trat1 vs control | 36% | 64% |
 | Trat2 vs control | 24% | **76%** |
@@ -69,7 +69,7 @@ Calculation: `(48.9% − 8.7%) × 500,000 ≈ 200,773`.
 
 The heterogeneous-effects analysis (notebook 03) shows that not all customers respond equally:
 
-| Segment | CATE trat2 (ctor) | Action |
+| Segment | conditional average treatment effect (CATE) trat2 (ctor) | Action |
 |---------|-------------------|--------|
 | Age 18–35 | High (~0.67) | Prioritize trat2 |
 | Age 36–50 | Moderate (~0.21) | Deploy trat2 |
@@ -87,11 +87,3 @@ The out-of-sample validation (notebook 05) confirms this ranking holds on held-o
 | Deploy **Treatment 2** as the main variant | +40.2 pp in click rate vs control |
 | Prioritize high-CATE segments (younger customers, app users) | Additional gains via personalization |
 | Keep a continuous A/B post-launch | Early detection of nudge fatigue |
-
----
-
-## 7. Next step
-
-1. Roll out trat2 to the target base.
-2. Monitor open/click by cohort.
-3. Re-estimate CATE quarterly to adjust targeting.
