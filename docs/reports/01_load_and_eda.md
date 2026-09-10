@@ -423,3 +423,9 @@ balance_df
 
 
 **EDA takeaway:** The three arms are reasonably balanced. The treatments show a clear increase in open rate and click rate versus control; `trat2` appears to beat `trat1` on clicks.
+
+---
+
+### Next
+
+→ [02 — Classic experiment analysis (ATE)](02_basic_experiment_analysis.md)

@@ -244,3 +244,9 @@ print(model_ctor.summary2().tables[1].loc[
 
 
 **Takeaway:** Both nudges significantly increase open rate and click rate. Trat2 beats trat1 on clicks. The effects persist after adjusting for covariates.
+
+---
+
+### Next
+
+→ [03 — Causal ML: heterogeneous effects (CATE)](03_causal_ml_heterogeneity.md)

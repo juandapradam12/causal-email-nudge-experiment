@@ -140,3 +140,9 @@ recommendation
 ---
 
 **Export:** see [`docs/04_DATA_STORYTELLING.md`](../docs/04_DATA_STORYTELLING.md)
+
+---
+
+### Next
+
+→ [05 — Out-of-sample uplift validation & CATE uncertainty](05_uplift_validation.md)

@@ -323,3 +323,9 @@ plt.show()
 - **The targeting is validated out-of-sample:** Qini/AUUC well above random, with the Causal Forest leading.
 - **Heterogeneity is real but nuanced:** younger customers (18-35) show a large, statistically significant effect, while for the oldest segment the group CI includes 0 — the effect is not distinguishable from noise. So prioritize the segments with both a high CATE **and** a significant interval.
 - Combined with the scaled impact from notebook 04, this supports deploying **trat2** while prioritizing younger / app-user segments.
+
+---
+
+### Next
+
+→ [Project overview (README)](../../README.md)

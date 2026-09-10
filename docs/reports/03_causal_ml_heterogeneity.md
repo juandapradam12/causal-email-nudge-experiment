@@ -410,4 +410,8 @@ validate_cate_vs_ate(df, 'trat2', 'ctor', cate_trat2).round(4)
 </table>
 </div>
 
+---
 
+### Next
+
+→ [04 — Data storytelling for the client](04_data_storytelling.md)
