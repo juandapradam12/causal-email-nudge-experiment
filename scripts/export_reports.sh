@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Execute every analysis notebook and export a rendered HTML report to
-# docs/reports/. Reproducible: run from the repo root with the project venv.
+# Execute every analysis notebook and export a rendered Markdown report (with
+# figures) to docs/reports/, so the reports render directly on GitHub.
+# Reproducible: run from the repo root with the project venv.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -17,10 +18,10 @@ mkdir -p "$OUT_DIR"
 for nb in notebooks/*.ipynb; do
   echo "Rendering ${nb} ..."
   jupyter nbconvert \
-    --to html \
+    --to markdown \
     --execute "$nb" \
     --output-dir "$OUT_DIR" \
     --ExecutePreprocessor.timeout=1800
 done
 
-echo "Reports written to ${OUT_DIR}/"
+echo "Reports written to ${OUT_DIR}/ (Markdown + figure images)"

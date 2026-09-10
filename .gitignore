@@ -20,9 +20,6 @@ venv/
 # Outputs
 outputs/
 *.html
-# ...but keep the rendered notebook reports
-!docs/reports/
-!docs/reports/*.html
 
 # Coverage
 .coverage
