@@ -47,4 +47,21 @@ A sample of 5,000 individuals was drawn from a total population of 500,000 custo
 
 ## Experimental design (diagram)
 
-The original brief included a design diagram. See the causal funnel diagram in [`GUIA_CONCEPTUAL_TECNICA.md`](GUIA_CONCEPTUAL_TECNICA.md#5-causal-funnel-diagram).
+Randomized controlled trial (RCT): a random sample is drawn from the customer base and randomly assigned to the control and the two treatment arms; the two KPIs (open, click) are then measured for every arm.
+
+```mermaid
+flowchart TD
+    P["Population: 500,000 customers"] -->|random sampling| S["Sample: 5,000 customers"]
+    S -->|random assignment| C["Control (ctrl): email, no nudge"]
+    S -->|random assignment| T1["Treatment 1 (trat1): email + nudge A"]
+    S -->|random assignment| T2["Treatment 2 (trat2): email + nudge B"]
+    C --> K["KPIs: open rate (or) and click rate (ctor)"]
+    T1 --> K
+    T2 --> K
+
+    style C fill:#e3f2fd
+    style T1 fill:#fff3e0
+    style T2 fill:#c8e6c9
+```
+
+For the downstream funnel (open → click), see the causal funnel diagram in [`GUIA_CONCEPTUAL_TECNICA.md`](GUIA_CONCEPTUAL_TECNICA.md#5-causal-funnel-diagram).
