@@ -24,8 +24,8 @@ Reference documentation in [`docs/`](docs/):
 - [`GUIA_CONCEPTUAL_TECNICA.md`](docs/GUIA_CONCEPTUAL_TECNICA.md) — causal framework, `ctrl` vs `trat`, results and interpretation
 - [`CAUSAL_ML.md`](docs/CAUSAL_ML.md) — identification, meta-learners, DML, CausalForest, mediation, validation
 - [`04_DATA_STORYTELLING.md`](docs/04_DATA_STORYTELLING.md) — executive narrative for the client
-- `DOE_prueba_tecnica.docx` — experiment design
-- `Dic_Variables_Prueba_Tecnica.pdf` — variable dictionary
+- [`EXPERIMENT_DESIGN.md`](docs/EXPERIMENT_DESIGN.md) — experiment design brief
+- [`VARIABLES.md`](docs/VARIABLES.md) — variable dictionary
 
 ## Variable dictionary
 
@@ -55,13 +55,13 @@ Reference documentation in [`docs/`](docs/):
 
 ## Executed reports
 
-Rendered HTML versions of the notebooks already executed (with charts and tables) in [`docs/reports/`](docs/reports/):
+Rendered Markdown versions of the executed notebooks (with charts and tables, viewable directly on GitHub) in [`docs/reports/`](docs/reports/):
 
-- [`01_load_and_eda.html`](docs/reports/01_load_and_eda.html)
-- [`02_basic_experiment_analysis.html`](docs/reports/02_basic_experiment_analysis.html)
-- [`03_causal_ml_heterogeneity.html`](docs/reports/03_causal_ml_heterogeneity.html)
-- [`04_data_storytelling.html`](docs/reports/04_data_storytelling.html)
-- [`05_uplift_validation.html`](docs/reports/05_uplift_validation.html)
+- [`01_load_and_eda.md`](docs/reports/01_load_and_eda.md)
+- [`02_basic_experiment_analysis.md`](docs/reports/02_basic_experiment_analysis.md)
+- [`03_causal_ml_heterogeneity.md`](docs/reports/03_causal_ml_heterogeneity.md)
+- [`04_data_storytelling.md`](docs/reports/04_data_storytelling.md)
+- [`05_uplift_validation.md`](docs/reports/05_uplift_validation.md)
 
 To regenerate them: `bash scripts/export_reports.sh`.
 

@@ -18,7 +18,7 @@ A bank wants to **increase engagement** with transactional or marketing emails. 
 | Validation | Does the targeting hold out-of-sample? | Qini/AUUC + CATE CIs (`05_uplift_validation.ipynb`) |
 | Decision | What to deploy and at what scale? | Storytelling + impact (`04_data_storytelling.ipynb`) |
 
-### Experimental design (RCT)
+### Experimental design: randomized controlled trial (RCT)
 
 - **Target population:** 500,000 bank customers.
 - **Analyzed sample:** 5,000 customers (~1%), randomly assigned.
@@ -27,7 +27,7 @@ A bank wants to **increase engagement** with transactional or marketing emails. 
   - `trat1` — behavioral nudge 1.
   - `trat2` — behavioral nudge 2.
 
-Randomization is the key piece: in a well-executed RCT, **we do not need to control for covariates to estimate the average causal effect (ATE)**. Covariates come into play to (a) check balance, (b) gain precision in regression, and (c) estimate heterogeneous effects (CATE).
+Randomization is the key piece: in a well-executed randomized controlled trial (RCT), **we do not need to control for covariates to estimate the average treatment effect (ATE)**. Covariates come into play to (a) check balance, (b) gain precision in regression, and (c) estimate heterogeneous effects (CATE).
 
 ### What is `ctrl` and what is `trat`? (conceptual)
 
@@ -43,21 +43,21 @@ The names in the `grupo` column are **experiment arms**, not arbitrary labels:
 
 **`trat` (trat1 / trat2)** are the **interventions** we want to evaluate. Each defines a distinct potential outcome:
 
-\[
+$$
 Y_i(\text{ctrl}),\quad Y_i(\text{trat1}),\quad Y_i(\text{trat2})
-\]
+$$
 
-For customer \(i\) we only observe **one** — the one for the randomly assigned arm:
+For customer $i$ we only observe **one** — the one for the randomly assigned arm:
 
-\[
+$$
 Y_i^{\text{obs}} = Y_i(T_i), \quad T_i \in \{\text{ctrl}, \text{trat1}, \text{trat2}\}
-\]
+$$
 
 The other two are **counterfactuals** (unobserved). Randomization lets us replace counterfactual expectations with the corresponding group means:
 
-\[
+$$
 ATE_{\text{trat2 vs ctrl}} = \mathbb{E}[Y(\text{trat2}) - Y(\text{ctrl})] \approx \bar{Y}_{\text{trat2}} - \bar{Y}_{\text{ctrl}}
-\]
+$$
 
 **Analogy:** in a clinical trial, "placebo" is not "no medicine"; it is the reference treatment. Here `ctrl` is the reference email; `trat1` and `trat2` are the nudge variants.
 
@@ -70,22 +70,22 @@ For depth on CATE, meta-learners and DML, see [`CAUSAL_ML.md`](CAUSAL_ML.md).
 | Variable | Type | Causal role | Interpretation |
 |----------|------|-------------|----------------|
 | `iid` | ID | — | Unique customer identifier |
-| `grupo` | Treatment \(T\) | **Intervention** | Email variant received |
+| `grupo` | Treatment $T$ | **Intervention** | Email variant received |
 | `or` | Binary | **Intermediate outcome** | Did they open the email? (open rate) |
 | `ctor` | Binary | **Final outcome** | Did they click the button? |
-| `sexo`, `edad`, `inve`, `uso_app`, `tarjeta_debito`, `tipo_tarjeta`, `formacion` | Covariates \(X\) | **Pre-treatment** | Customer profile before the email |
+| `sexo`, `edad`, `inve`, `uso_app`, `tarjeta_debito`, `tipo_tarjeta`, `formacion` | Covariates $X$ | **Pre-treatment** | Customer profile before the email |
 
 ### Relationship between `or` and `ctor`
 
 In the data, **`ctor` is nested within `or`**: if `or = 0`, then `ctor = 0` always. Therefore:
 
-\[
+$$
 \text{ctor} = \mathbb{1}[\text{opened}] \times \mathbb{1}[\text{clicked}]
-\]
+$$
 
-- **Open rate:** \(\bar{or} = P(\text{open})\)
-- **Click rate (`ctor`):** \(P(\text{open} \cap \text{click})\) — overall click-conversion rate.
-- **Click-to-open (conditional CTOR):** \(P(\text{click} \mid \text{open}) = \bar{ctor} / \bar{or}\) when \(or > 0\).
+- **Open rate:** $\bar{or} = P(\text{open})$
+- **Click rate (`ctor`):** $P(\text{open} \cap \text{click})$ — overall click-conversion rate.
+- **Click-to-open (conditional CTOR):** $P(\text{click} \mid \text{open}) = \bar{ctor} / \bar{or}$ when $or > 0$.
 
 The nudge can act at **two funnel stages**:
 
@@ -100,25 +100,25 @@ That is why we analyze **both outcomes** separately.
 
 ### Potential outcomes model (Rubin)
 
-For each customer \(i\) there exist potential outcomes \(Y_i(0), Y_i(1), Y_i(2)\) depending on the assigned arm. We only observe one:
+For each customer $i$ there exist potential outcomes $Y_i(0), Y_i(1), Y_i(2)$ depending on the assigned arm. We only observe one:
 
-\[
+$$
 Y_i^{\text{obs}} = Y_i(T_i), \quad T_i \in \{\text{ctrl}, \text{trat1}, \text{trat2}\}
-\]
+$$
 
 ### ATE (Average Treatment Effect)
 
 To compare `trat2` vs `ctrl` on click rate:
 
-\[
+$$
 ATE = \mathbb{E}[Y(\text{trat2}) - Y(\text{ctrl})]
-\]
+$$
 
 In an RCT with a binary outcome, the natural estimator is the **difference in proportions**:
 
-\[
+$$
 \widehat{ATE} = \bar{Y}_{\text{trat2}} - \bar{Y}_{\text{ctrl}}
-\]
+$$
 
 **Results in this dataset:**
 
@@ -140,11 +140,11 @@ In an RCT with a binary outcome, the natural estimator is the **difference in pr
 
 ### CATE (Conditional Average Treatment Effect)
 
-\[
+$$
 CATE(x) = \mathbb{E}[Y(1) - Y(0) \mid X = x]
-\]
+$$
 
-It answers: *how much extra benefit does a customer with profile \(x\) get from receiving the treatment?*
+It answers: *how much extra benefit does a customer with profile $x$ get from receiving the treatment?*
 
 This enables **personalization**: send `trat2` first to segments with a high CATE.
 
@@ -216,11 +216,11 @@ Implemented checks:
 
 For binary proportions, the standard error is:
 
-\[
+$$
 SE = \sqrt{\frac{p_T(1-p_T)}{n_T} + \frac{p_C(1-p_C)}{n_C}}
-\]
+$$
 
-95% CI: \(\widehat{ATE} \pm 1.96 \cdot SE\)
+95% CI: $\widehat{ATE} \pm 1.96 \cdot SE$
 
 Reusable implementation:
 
@@ -236,9 +236,9 @@ impact = scale_impact(ate_pp=0.4015, population_size=500_000, outcome_label="cli
 
 Model:
 
-\[
+$$
 \log\frac{P(Y=1)}{1-P(Y=1)} = \beta_0 + \beta_1 \cdot \mathbb{1}[trat1] + \beta_2 \cdot \mathbb{1}[trat2] + \gamma^T X
-\]
+$$
 
 | Outcome | Treatment | OR | Interpretation |
 |---------|-----------|-----|----------------|
@@ -257,8 +257,8 @@ In an RCT the ATE is easy to estimate. But the business wants **actionable segme
 
 | Learner | Idea | Effect formula |
 |---------|------|----------------|
-| **S-Learner** | One model with \(T\) as a feature | \(\hat\tau(x) = \hat\mu(x,1) - \hat\mu(x,0)\) |
-| **T-Learner** | Separate model per arm | \(\hat\tau(x) = \hat\mu_1(x) - \hat\mu_0(x)\) |
+| **S-Learner** | One model with $T$ as a feature | $\hat\tau(x) = \hat\mu(x,1) - \hat\mu(x,0)$ |
+| **T-Learner** | Separate model per arm | $\hat\tau(x) = \hat\mu_1(x) - \hat\mu_0(x)$ |
 | **X-Learner** | Uses propensity + cross-imputation | Better when an arm is smaller or heterogeneity is strong |
 | **LinearDML** | Cross-fitting + orthogonal regression | Robust to poorly estimated nuisances; see `CAUSAL_ML.md` |
 
@@ -385,8 +385,8 @@ The nudges move the funnel at **two points**:
 causal-email-nudge-experiment/
 ├── data/datos_prueba_tecnica.csv    # 5,000 experiment rows
 ├── docs/
-│   ├── DOE_prueba_tecnica.docx      # Experiment design
-│   ├── Dic_Variables_Prueba_Tecnica.pdf
+│   ├── EXPERIMENT_DESIGN.md         # Experiment design brief (Markdown)
+│   ├── VARIABLES.md                 # Variable dictionary (Markdown)
 │   ├── GUIA_CONCEPTUAL_TECNICA.md   # ← this document
 │   ├── CAUSAL_ML.md                 # Causal ML framework (meta-learners, DML)
 │   ├── 04_DATA_STORYTELLING.md      # Executive narrative (Markdown)
@@ -426,16 +426,7 @@ causal-email-nudge-experiment/
 
 ---
 
-## 9. Suggested technical next steps
-
-1. **Policy learning:** optimal treatment rules (`PolicyTree`) per segment.
-2. **Advanced calibration:** Platt / isotonic on the base models' `predict_proba`.
-3. **Sequential rollout:** validate external validity on a holdout cohort of the 500k.
-4. Keep the narrative in Markdown — [`04_DATA_STORYTELLING.md`](04_DATA_STORYTELLING.md).
-
----
-
-## 10. Quick reference
+## 9. Quick reference
 
 - **ATE / diff-in-means:** primary estimator in an RCT; see `src/analysis.py`.
 - **Logistic regression:** adjusted odds ratios; notebook 02.

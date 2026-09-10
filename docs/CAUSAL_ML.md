@@ -9,24 +9,24 @@ Reference guide for the causal framework and the **Causal Machine Learning** tec
 | Approach | Question | Example in this project |
 |----------|----------|-------------------------|
 | **Predictive** | Who will click? | A `ctor` classifier with no counterfactual |
-| **Causal** | Did the nudge *cause* more clicks than control? | ATE in an RCT |
+| **Causal** | Did the nudge *cause* more clicks than control? | Average treatment effect (ATE) in a randomized controlled trial (RCT) |
 | **Causal ML** | For *which profile* does the nudge cause more clicks? | CATE + personalization |
 
-A predictive model may associate "younger age" with more clicks because younger customers already clicked more **without** the nudge. The CATE tries to estimate the **increment attributable to the treatment** conditional on the profile \(X\).
+A predictive model may associate "younger age" with more clicks because younger customers already clicked more **without** the nudge. The CATE tries to estimate the **increment attributable to the treatment** conditional on the profile $X$.
 
 ---
 
-## 2. Identification in an RCT
+## 2. Identification in a randomized controlled trial (RCT)
 
 For an effect estimator to have a causal interpretation, assumptions are needed. In a well-executed randomized experiment:
 
 ### 2.1 Random assignment (ignorability)
 
-\[
+$$
 Y(0), Y(1) \perp T \quad \Rightarrow \quad \mathbb{E}[Y \mid T=1] - \mathbb{E}[Y \mid T=0] = \mathbb{E}[Y(1) - Y(0)]
-\]
+$$
 
-Assignment to `ctrl`, `trat1` or `trat2` is independent of the potential outcomes. That is why the **group difference in means** is a valid ATE estimator without adjusting for covariates.
+Assignment to `ctrl`, `trat1` or `trat2` is independent of the potential outcomes. That is why the **group difference in means** is a valid average treatment effect (ATE) estimator without adjusting for covariates.
 
 ### 2.2 SUTVA (Stable Unit Treatment Value Assumption)
 
@@ -38,11 +38,11 @@ Every customer has a positive probability of being in each arm. With balanced ra
 
 ### 2.4 Potential outcomes with three arms
 
-Here there are **three** treatments, not one. For each customer \(i\):
+Here there are **three** treatments, not one. For each customer $i$:
 
-\[
+$$
 Y_i(\text{ctrl}),\; Y_i(\text{trat1}),\; Y_i(\text{trat2})
-\]
+$$
 
 We only observe one. The comparisons are **pairwise**:
 
@@ -50,7 +50,7 @@ We only observe one. The comparisons are **pairwise**:
 - `trat2` vs `ctrl` → effect of nudge B
 - `trat2` vs `trat1` → incremental effect of B over A
 
-The meta-learners in the code binarize: \(T=0\) if `ctrl`, \(T=1\) if the chosen treatment arm.
+The meta-learners in the code binarize: $T=0$ if `ctrl`, $T=1$ if the chosen treatment arm.
 
 ---
 
@@ -79,18 +79,18 @@ RCT (random group)
 
 ## 4. Meta-learners (EconML)
 
-They all estimate \(\hat\tau(x)\) from supervised outcome models. Implemented in `src/causal.py` with `RandomForestClassifier` as the base model (binary outcome).
+They all estimate $\hat\tau(x)$ from supervised outcome models. Implemented in `src/causal.py` with `RandomForestClassifier` as the base model (binary outcome).
 
 ### 4.1 S-Learner (Single model)
 
-A single model predicts \(Y\) using \(X\) and \(T\):
+A single model predicts $Y$ using $X$ and $T$:
 
-\[
+$$
 \hat\tau(x) = \hat\mu(x, T=1) - \hat\mu(x, T=0)
-\]
+$$
 
 - **Advantage:** simple, a single model.
-- **Risk:** if the treatment effect is small, the model may "ignore" \(T\) and underestimate \(\tau(x)\).
+- **Risk:** if the treatment effect is small, the model may "ignore" $T$ and underestimate $\tau(x)$.
 
 In this project: mean S-Learner CATE ≈ **0.21** (trat2 vs ctrl, `ctor`).
 
@@ -98,9 +98,9 @@ In this project: mean S-Learner CATE ≈ **0.21** (trat2 vs ctrl, `ctor`).
 
 Separate models per arm:
 
-\[
+$$
 \hat\tau(x) = \hat\mu_1(x) - \hat\mu_0(x)
-\]
+$$
 
 - **Advantage:** per-arm flexibility; good with strong heterogeneity.
 - **Risk:** error accumulates if an arm has few observations in some segment.
@@ -109,9 +109,9 @@ Mean T-Learner CATE ≈ **0.21**.
 
 ### 4.3 X-Learner
 
-Combines the T-Learner with a **propensity model** \(\hat e(x) = P(T=1 \mid X)\) and cross-imputation of individual effects. It usually works better when one arm is smaller or heterogeneity is marked.
+Combines the T-Learner with a **propensity model** $\hat e(x) = P(T=1 \mid X)$ and cross-imputation of individual effects. It usually works better when one arm is smaller or heterogeneity is marked.
 
-In an RCT, \(\hat e(x) \approx 0.5\) constant; the X-Learner can still help in the effect-regression stage.
+In an RCT, $\hat e(x) \approx 0.5$ constant; the X-Learner can still help in the effect-regression stage.
 
 Mean X-Learner CATE ≈ **0.20** (used by default for segmentation in notebook 03).
 
@@ -130,7 +130,7 @@ Mean X-Learner CATE ≈ **0.20** (used by default for segmentation in notebook 0
 
 Meta-learners estimate effects **directly** from outcome models. **DML** (Chernozhukov et al.) separates:
 
-1. **Nuisance functions:** \(\hat\mu(x)\) (outcome) and \(\hat e(x)\) (propensity), with **cross-fitting** to avoid overfitting.
+1. **Nuisance functions:** $\hat\mu(x)$ (outcome) and $\hat e(x)$ (propensity), with **cross-fitting** to avoid overfitting.
 2. **Final stage:** regression of the "residual outcome" on the "residual treatment" → a **Neyman-orthogonal** estimator (more robust to nuisance errors).
 
 In EconML:
@@ -173,9 +173,9 @@ EconML's `DRLearner` (doubly robust) is powerful on observational data. In tests
 
 Under correct identification and a well-specified model:
 
-\[
+$$
 \frac{1}{n}\sum_i \hat\tau(x_i) \approx \widehat{ATE}
-\]
+$$
 
 The `validate_cate_vs_ate` function in `src/causal.py` compares:
 
@@ -199,18 +199,18 @@ The `validate_cate_vs_ate` function in `src/causal.py` compares:
 
 The funnel imposes structure:
 
-\[
+$$
 \text{ctor} = \text{or} \times \text{click\_if\_opened}
 \quad\Rightarrow\quad
 \mathbb{E}[\text{ctor}\mid T] = P(\text{or}=1\mid T)\times P(\text{ctor}=1\mid \text{or}=1, T)
-\]
+$$
 
 A nudge can raise **opening** (`or`) or **clicks conditional on opening** (CTO). Kitagawa–Blinder–Oaxaca decomposition (treatment weights on the conversion path), implemented in `src/mediation.py`:
 
-\[
+$$
 \Delta\text{ctor} = \underbrace{\text{CTO}_{\text{ctrl}}\cdot\Delta\text{or}}_{\text{via opening}}
 + \underbrace{\text{OR}_{\text{trat}}\cdot\Delta\text{CTO}}_{\text{via conversion}}
-\]
+$$
 
 | Comparison | ATE ctor | Via opening | Via conversion | Conversion share |
 |------------|----------|-------------|----------------|------------------|
@@ -233,7 +233,7 @@ all_funnel_mediations(df)
 
 ### CausalForestDML
 
-A causal forest with DML residualization + honest trees for \(\tau(x)\). In this dataset (trat2 vs ctrl, `ctor`): mean ≈ **0.19** — same order of magnitude as the meta-learners; it does not close the gap vs the ATE of 0.40 on its own.
+A causal forest with DML residualization + honest trees for $\tau(x)$. In this dataset (trat2 vs ctrl, `ctor`): mean ≈ **0.19** — same order of magnitude as the meta-learners; it does not close the gap vs the ATE of 0.40 on its own.
 
 Enabled by default in `fit_cate(..., include_causal_forest=True)`.
 
